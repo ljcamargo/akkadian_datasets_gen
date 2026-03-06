@@ -24,7 +24,7 @@ CSV_DIALECT_PRETRAIN = {
 }
 
 # --- PROMPT TEMPLATES ---
-HEADER_TEMPLATE = "# Cuneiform Tablet %prefix% %number%\n## %title%\n\n"
+HEADER_TEMPLATE = "# Cuneiform Tablet %text_id%\n## %title%\n\n"
 TITLE_EPIGRAPHIC = "Epigraphic Transliteration"
 TITLE_COMPACT = "Compact Epigraphic Transliteration"
 TITLE_SPELLING = "Akkadian Orthography"
@@ -69,11 +69,23 @@ def get_markdown_title(type_name, is_grammar=False):
         return TITLE_GRAMMAR_TEMPLATE.replace("%base%", base)
     return base
 
+def get_text_id(text_meta):
+    """Returns a consistent row identifier: name > publicationPrefix/Number > uuid."""
+    name = text_meta.get("name")
+    if name:
+        return name
+    
+    p = text_meta.get("publicationPrefix")
+    n = text_meta.get("publicationNumber")
+    if p or n:
+        return f"{p or ''} {n or ''}".strip()
+        
+    return text_meta.get("uuid", "N/A")
+
 def get_markdown_header(text_meta, type_name, is_grammar=False):
-    prefix = str(text_meta.get("publicationPrefix", "N/A"))
-    number = str(text_meta.get("publicationNumber", "N/A"))
+    text_id = get_text_id(text_meta)
     title = get_markdown_title(type_name, is_grammar)
-    return HEADER_TEMPLATE.replace("%prefix%", prefix).replace("%number%", number).replace("%title%", title)
+    return HEADER_TEMPLATE.replace("%text_id%", text_id).replace("%title%", title)
 
 def group_units_by_spelling(units, key):
     """Group units strictly if they are consecutive and share the same spellingUuid."""
@@ -238,7 +250,7 @@ def process_corpus(args):
                 
             text_meta = data.get("text", {})
             units = data.get("units", [])
-            pub_info = f"{text_meta.get('publicationPrefix')} {text_meta.get('publicationNumber')}"
+            pub_info = get_text_id(text_meta)
             
             # --- 1. TEXT PRETRAIN ---
             # Uniqueness: Full text content per mode
