@@ -29,6 +29,7 @@ PROMPT_MEANING_FINETUNE_WORD = "Provide the lexical definition of this Akkadian 
 PROMPT_LEMMA_FINETUNE = "Identify the Akkadian lemma of this %type_name% form"
 PROMPT_TRANS_AKK_TO_ENG = "Translate this Akkadian cuneiform %type_name% into English"
 PROMPT_TRANS_ENG_TO_AKK = "Translate this English text into Akkadian cuneiform (%type_name%)"
+PROMPT_TRANS_ENG_TO_AKK_WORD = "Translate this English lexical definition into an Akkadian form"
 PROMPT_TRANSFORM_EPIG_TO_SPELL = "Convert this text from Epigraphic Transliteration to Akkadian Orthography"
 PROMPT_TRANSFORM_SPELL_TO_EPIG = "Convert this text from Akkadian Orthography to Epigraphic Transliteration"
 PROMPT_TRANSFORM_COMPACT_TO_SPELL = "Convert this text from Compact Epigraphic Transliteration to Akkadian Orthography"
@@ -45,6 +46,11 @@ TRANS_TABLE_TEMPLATE = "| %h1% | %h2% |\n|---|---|\n"
 ROSETTA_TABLE_HEADER = "| Epigraphic Transliteration | Compact Epigraphic Transliteration | Akkadian Orthography | Lemma | Definition |\n|---|---|---|---|---|\n"
 
 # --- HELPERS ---
+
+def clean_translation(text):
+    """Remove parentheses and extra spaces from English translations."""
+    if not text: return ""
+    return " ".join(text.replace('(', '').replace(')', '').split())
 
 def linearize(text):
     if not text: return ""

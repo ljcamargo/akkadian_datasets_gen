@@ -7,7 +7,7 @@
 # Datasets
 ## Parsable
 - published_texts.csv (DONE)
-- eBL_Dictionary.csv , need to parse into structure and finetune/pretrain
+- eBL_Dictionary.csv , (DONE) PARSED into structure and finetune/pretrain
 - OA_Lexicon_eBL.csv , need to parse into TABLE, duplicates from pubished_texts?
 - publications.csv , huge list of docs, parse into MD, possible extract Assyrian (??)
 - Sentences_Oare_FirstWorld_LinNum.csv, ??? 

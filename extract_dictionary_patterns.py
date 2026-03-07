@@ -3,6 +3,14 @@ import json
 import re
 import os
 
+GRAMMAR_MAP = {
+    "person": {"1": "1", "2": "2", "3": "3", "1st": "1", "2nd": "2", "3rd": "3"},
+    "gender": {"m.": "masculine", "f.": "feminine", "c.": "common"},
+    "number": {"sg.": "singular", "pl.": "plural", "du.": "dual"},
+    "case": {"acc.": "accusative", "dat.": "dative", "gen.": "genitive", "nom.": "nominative", "loc.": "locative", "term.": "terminative", "adv.": "adverbial"},
+    "suffix": {"suff.": True, "suffix": True}
+}
+
 def clean_word(word):
     """Remove trailing Roman numerals like ' I', ' II'."""
     return re.sub(r'\s+[IVX]+$', '', word).strip()
@@ -13,14 +21,45 @@ def clean_lemma(derived_from):
         return []
     # Remove leading "cf. " if present
     df = re.sub(r'^cf\.\s*', '', derived_from)
-    # Split by spaces, commas, or semicolons
+    # Split by spaces, commas or semicolons
     parts = re.split(r'[,; ]+', df)
     lemmas = []
+    
+    roman_numeral_pattern = re.compile(r'^[IVX]+$')
+    
     for p in parts:
         cleaned = clean_word(p)
-        if cleaned and cleaned != 'cf.':
-            lemmas.append(cleaned)
+        if not cleaned or cleaned == 'cf.':
+            continue
+        # Exclude if it has a dot (e.g., 'Sum.', 'Aram.') or is entirely a Roman numeral
+        if '.' in cleaned or roman_numeral_pattern.match(cleaned):
+            continue
+        
+        lemmas.append(cleaned)
     return lemmas
+
+def validate_grammar(grammar_str):
+    """
+    Check if a grammar string is well-formed.
+    Valid if every token contains a '.', ',', a digit, or has no letters (e.g., '=').
+    """
+    tokens = grammar_str.split()
+    for token in tokens:
+        if not (re.search(r'[.,\d]', token) or not re.search(r'[A-Za-z]', token)):
+            return False
+    return True
+
+def parse_grammar_string(grammar_str):
+    """Attempt to structure the grammar string by matching abbreviations."""
+    result = {"parse": grammar_str}
+    tokens = [t.strip(',') for t in grammar_str.split()]
+    for token in tokens:
+        token_lower = token.lower()
+        for category, mapping in GRAMMAR_MAP.items():
+            if token_lower in mapping:
+                result[category] = mapping[token_lower]
+                break
+    return result
 
 def parse_definition(definition_text, global_lemmas):
     """Parse definitions into structured meanings."""
@@ -52,14 +91,22 @@ def parse_definition(definition_text, global_lemmas):
             if paren_str.startswith('cf.'):
                 references.append(paren_str)
             else:
-                grammar.append(paren_str)
-                
-        meanings.append({
-            "definition": meaning_str,
-            "lemmas": global_lemmas, # Associate the global lemmas with this meaning
-            "grammar": grammar,
-            "references": references
-        })
+                if validate_grammar(paren_str):
+                    grammar.append(parse_grammar_string(paren_str))
+                else:
+                    # Invalid grammar sets the row to special but DOES NOT keep the invalid grammar
+                    special = True
+        
+        # Split definition into multiple parts by comma or semicolon
+        meaning_parts = [p.strip() for p in re.split(r'[,;]+', meaning_str) if p.strip()]
+        
+        for part in meaning_parts:
+            meanings.append({
+                "definition": part,
+                "lemmas": list(global_lemmas), # Independent copy
+                "grammar": list(grammar),
+                "references": list(references)
+            })
         
     if not found_any:
         special = True

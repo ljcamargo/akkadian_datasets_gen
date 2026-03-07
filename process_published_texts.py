@@ -245,11 +245,12 @@ def process_corpus(args):
                             if q_val:
                                 # Handle PN replacement for Translations
                                 actual_part = q_val if part == "PN" else part
-                                if dedup.is_unique("trans", type_name, q_val, actual_part):
-                                    ft_writers["translations_finetune"].writerow([PROMPT_TRANS_AKK_TO_ENG.replace("%type_name%", type_name), q_val, actual_part])
-                                    ft_writers["translations_finetune"].writerow([PROMPT_TRANS_ENG_TO_AKK.replace("%type_name%", type_name), actual_part, q_val])
-                                    trans_p_buffers[(type_name, "to_eng")].append((q_val, actual_part))
-                                    trans_p_buffers[(type_name, "from_eng")].append((actual_part, q_val))
+                                cleaned_part = clean_translation(actual_part)
+                                if dedup.is_unique("trans", type_name, q_val, cleaned_part):
+                                    ft_writers["translations_finetune"].writerow([PROMPT_TRANS_AKK_TO_ENG.replace("%type_name%", type_name), q_val, cleaned_part])
+                                    ft_writers["translations_finetune"].writerow([PROMPT_TRANS_ENG_TO_AKK.replace("%type_name%", type_name), cleaned_part, q_val])
+                                    trans_p_buffers[(type_name, "to_eng")].append((q_val, cleaned_part))
+                                    trans_p_buffers[(type_name, "from_eng")].append((cleaned_part, q_val))
 
                 # Transforms Finetune
                 transforms = [

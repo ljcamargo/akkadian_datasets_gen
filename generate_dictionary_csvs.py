@@ -64,7 +64,15 @@ def main():
                 grammar = meaning_obj.get("grammar", [])
                 
                 joined_lemmas = ", ".join(lemmas) if lemmas else ""
-                joined_grammar = ", ".join(grammar) if grammar else ""
+                
+                grammar_strings = []
+                for g in grammar:
+                    if isinstance(g, dict):
+                        grammar_strings.append(g.get("parse", ""))
+                    else:
+                        grammar_strings.append(str(g))
+                        
+                joined_grammar = ", ".join(grammar_strings) if grammar_strings else ""
 
                 # --- FINETUNING ---
                 if definition:
@@ -74,11 +82,18 @@ def main():
                             linearize(word),
                             linearize(definition)
                         ])
-                    if dedup.is_unique("trans_ft", word, definition):
+                        
+                    cleaned_def = clean_translation(definition)
+                    if dedup.is_unique("trans_ft", word, cleaned_def):
                         ft_writers["translations_finetune"].writerow([
                             linearize(PROMPT_TRANS_AKK_TO_ENG.replace("%type_name%", type_name)),
                             linearize(word),
-                            linearize(definition)
+                            linearize(cleaned_def)
+                        ])
+                        ft_writers["translations_finetune"].writerow([
+                            linearize(PROMPT_TRANS_ENG_TO_AKK_WORD),
+                            linearize(cleaned_def),
+                            linearize(word)
                         ])
 
                 if joined_lemmas:
