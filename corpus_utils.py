@@ -1,0 +1,120 @@
+import csv
+import os
+import sqlite3
+import hashlib
+
+# --- CONFIGURATION CONSTANTS ---
+CSV_DIALECT_FINETUNE = {
+    "quoting": csv.QUOTE_ALL,
+    "lineterminator": "\n"
+}
+
+CSV_DIALECT_PRETRAIN = {
+    "quoting": csv.QUOTE_ALL,
+    "lineterminator": "\n"
+}
+
+# --- PROMPT TEMPLATES ---
+HEADER_TEMPLATE = "# Cuneiform Tablet %text_id%\n## %title%\n\n"
+TITLE_EPIGRAPHIC = "Epigraphic Transliteration"
+TITLE_COMPACT = "Compact Epigraphic Transliteration"
+TITLE_SPELLING = "Akkadian Orthography"
+TITLE_GRAMMAR_TEMPLATE = "Grammar Analysis (%base%)"
+
+PROMPT_TEXT_PRETRAIN = "Write the %type_name% form of the Akkadian cuneiform tablet %pub_info%"
+PROMPT_GRAMMAR_FINETUNE = "Provide the morphological annotation of this Akkadian cuneiform %type_name% form"
+PROMPT_GRAMMAR_PRETRAIN_TITLE = "# Morphological Annotation of Akkadian Cuneiform (%type_name%) form"
+PROMPT_MEANING_FINETUNE_TRANS = "Provide the lexical definition of this Akkadian cuneiform %type_name% form"
+PROMPT_MEANING_FINETUNE_WORD = "Provide the lexical definition of this Akkadian form"
+PROMPT_LEMMA_FINETUNE = "Identify the Akkadian lemma of this %type_name% form"
+PROMPT_TRANS_AKK_TO_ENG = "Translate this Akkadian cuneiform %type_name% into English"
+PROMPT_TRANS_ENG_TO_AKK = "Translate this English text into Akkadian cuneiform (%type_name%)"
+PROMPT_TRANSFORM_EPIG_TO_SPELL = "Convert this text from Epigraphic Transliteration to Akkadian Orthography"
+PROMPT_TRANSFORM_SPELL_TO_EPIG = "Convert this text from Akkadian Orthography to Epigraphic Transliteration"
+PROMPT_TRANSFORM_COMPACT_TO_SPELL = "Convert this text from Compact Epigraphic Transliteration to Akkadian Orthography"
+PROMPT_TRANSFORM_SPELL_TO_COMPACT = "Convert this text from Akkadian Orthography to Compact Epigraphic Transliteration"
+
+TITLE_TRANS_PT_TO_ENG = "# Akkadian Cuneiform (%type_name%) Translation to English"
+TITLE_TRANS_PT_FROM_ENG = "# English to Akkadian Cuneiform (%type_name%) Translation"
+TITLE_ROSETTA_PT = "# Akkadian Cuneiform Alignment Table"
+
+PROMPT_GRAMMAR_PRETRAIN_CONTENT = "%title%\n%word%\n%grammar%"
+PROMPT_GRAMMAR_ITEM_PREFIX = "- %variable%: %value%"
+
+TRANS_TABLE_TEMPLATE = "| %h1% | %h2% |\n|---|---|\n"
+ROSETTA_TABLE_HEADER = "| Epigraphic Transliteration | Compact Epigraphic Transliteration | Akkadian Orthography | Lemma | Definition |\n|---|---|---|---|---|\n"
+
+# --- HELPERS ---
+
+def linearize(text):
+    if not text: return ""
+    return text.replace("\n", "\\n")
+
+def get_markdown_title(type_name, is_grammar=False):
+    base = ""
+    if "compact" in type_name: base = TITLE_COMPACT
+    elif "spelling" in type_name: base = TITLE_SPELLING
+    else: base = TITLE_EPIGRAPHIC
+    
+    if is_grammar:
+        return TITLE_GRAMMAR_TEMPLATE.replace("%base%", base)
+    return base
+
+def get_text_id(text_meta):
+    """Returns a consistent row identifier: name > publicationPrefix/Number > uuid."""
+    name = text_meta.get("name")
+    if name:
+        return name
+    
+    p = text_meta.get("publicationPrefix")
+    n = text_meta.get("publicationNumber")
+    if p or n:
+        return f"{p or ''} {n or ''}".strip()
+        
+    return text_meta.get("uuid", "N/A")
+
+def get_markdown_header(text_meta, type_name, is_grammar=False):
+    text_id = get_text_id(text_meta)
+    title = get_markdown_title(type_name, is_grammar)
+    return HEADER_TEMPLATE.replace("%text_id%", text_id).replace("%title%", title)
+
+def get_grammar_result(group):
+    results = []
+    for u in group:
+        parse_list = u.get("parseInfo")
+        if not parse_list: continue
+        for item in parse_list:
+            var = item.get("variableName")
+            val = item.get("value")
+            if var and val:
+                results.append(PROMPT_GRAMMAR_ITEM_PREFIX.replace("%variable%", var).replace("%value%", val))
+    return "\n".join(results)
+
+
+class Deduplicator:
+    def __init__(self, db_path):
+        if os.path.exists(db_path):
+            os.remove(db_path)
+        self.conn = sqlite3.connect(db_path)
+        self.cursor = self.conn.cursor()
+        # Create table to store hashes of seen items
+        self.cursor.execute("CREATE TABLE seen (task TEXT, item_hash TEXT, PRIMARY KEY (task, item_hash))")
+        # Speed optimizations
+        self.cursor.execute("PRAGMA synchronous = OFF")
+        self.cursor.execute("PRAGMA journal_mode = MEMORY")
+        self.conn.commit()
+
+    def is_unique(self, task, *args):
+        """Returns True if the combination of task and args is new, False if seen."""
+        # Join args with a separator to form a content string
+        content = "|".join([str(a) for a in args])
+        item_hash = hashlib.md5(content.encode("utf-8")).hexdigest()
+        
+        try:
+            self.cursor.execute("INSERT INTO seen VALUES (?, ?)", (task, item_hash))
+            return True
+        except sqlite3.IntegrityError:
+            return False
+
+    def close(self):
+        self.conn.close()
