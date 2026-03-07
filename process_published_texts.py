@@ -126,6 +126,8 @@ def process_corpus(args):
     trans_p_buffers = defaultdict(list) 
     rosetta_buffer = []
 
+    dictionary_parsed_file = open(f"{OUTPUT_DIR}/dictionary_parsed.jsonl", "w", encoding="utf-8")
+
     with open(args.input, "r", encoding="utf-8") as f:
         for line_idx, line in enumerate(f, start=1):
             if args.start and line_idx < args.start: continue
@@ -252,6 +254,46 @@ def process_corpus(args):
                                     trans_p_buffers[(type_name, "to_eng")].append((q_val, cleaned_part))
                                     trans_p_buffers[(type_name, "from_eng")].append((cleaned_part, q_val))
 
+                # Dictionary JSONL Exporter
+                dict_word = u_word if u_word else q_f
+                dict_lemmas = [u_word] if u_word else []
+                dict_def = ""
+                if u_trans:
+                    dict_def = u_word if u_trans == "PN" else u_trans
+                    dict_def = clean_translation(dict_def)
+                
+                grammar_list = []
+                for u in group:
+                    pi = u.get("parseInfo")
+                    if pi:
+                        for item in pi:
+                            var_n = item.get("variableName")
+                            var_v = item.get("value")
+                            if var_n and var_v:
+                                grammar_list.append({
+                                    "parse": f"{var_n}: {var_v}",
+                                    var_n.lower(): var_v.lower()
+                                })
+                                
+                if dict_word and (dict_def or grammar_list):
+                    record = {
+                        "word": dict_word,
+                        "meanings": [
+                            {
+                                "definition": dict_def,
+                                "lemmas": dict_lemmas,
+                                "grammar": grammar_list,
+                                "references": []
+                            }
+                        ],
+                        "special": False,
+                        "epigraphic": q_e,
+                        "compact": q_c,
+                        "orthography": q_f
+                    }
+                    if dedup.is_unique("dict_jsonl", dict_word, dict_def, q_f, q_e, len(grammar_list)):
+                        dictionary_parsed_file.write(json.dumps(record, ensure_ascii=False) + "\n")
+
                 # Transforms Finetune
                 transforms = [
                     (q_e, q_f, PROMPT_TRANSFORM_EPIG_TO_SPELL),
@@ -309,7 +351,7 @@ def process_corpus(args):
     if os.path.exists(f"{OUTPUT_DIR}/dedup.db"):
         os.remove(f"{OUTPUT_DIR}/dedup.db")
         
-    for f in (list(ft_files.values()) + list(pt_files.values())):
+    for f in (list(ft_files.values()) + list(pt_files.values()) + [dictionary_parsed_file]):
         f.close()
 
 if __name__ == "__main__":
