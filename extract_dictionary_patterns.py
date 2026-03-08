@@ -4,7 +4,7 @@ import re
 import os
 
 GRAMMAR_MAP = {
-    "person": {"1": "1", "2": "2", "3": "3", "1st": "1", "2nd": "2", "3rd": "3"},
+    "person": {"1": "first", "2": "second", "3": "third", "1st": "first", "2nd": "second", "3rd": "third"},
     "gender": {"m.": "masculine", "f.": "feminine", "c.": "common"},
     "number": {"sg.": "singular", "pl.": "plural", "du.": "dual"},
     "case": {"acc.": "accusative", "dat.": "dative", "gen.": "genitive", "nom.": "nominative", "loc.": "locative", "term.": "terminative", "adv.": "adverbial"},

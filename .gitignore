@@ -1,2 +1,4 @@
 workspace/*
 *.pyc
+*.csv
+__pycache__

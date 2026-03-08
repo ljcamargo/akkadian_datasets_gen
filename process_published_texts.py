@@ -266,14 +266,28 @@ def process_corpus(args):
                 for u in group:
                     pi = u.get("parseInfo")
                     if pi:
+                        unit_grammar = {"parse": ""}
                         for item in pi:
                             var_n = item.get("variableName")
                             var_v = item.get("value")
                             if var_n and var_v:
-                                grammar_list.append({
-                                    "parse": f"{var_n}: {var_v}",
-                                    var_n.lower(): var_v.lower()
-                                })
+                                kn = var_n.lower().replace(" ", "_")
+                                vn = var_v.lower()
+                                
+                                # Homologate keys
+                                if kn == "grammatical_number": kn = "number"
+                                elif kn == "morphological_form": kn = "form"
+                                elif kn == "primary_classification": kn = "classification"
+                                elif kn == "part_of_speech": kn = "pos"
+                                
+                                # Homologate values
+                                if vn == "first person": vn = "first"
+                                elif vn == "second person": vn = "second"
+                                elif vn == "third person": vn = "third"
+                                
+                                unit_grammar[kn] = vn
+                        if len(unit_grammar) > 1:
+                            grammar_list.append(unit_grammar)
                                 
                 if dict_word and (dict_def or grammar_list):
                     record = {
