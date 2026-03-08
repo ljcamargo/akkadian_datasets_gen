@@ -122,6 +122,22 @@ Both pipelines output to their respective folders (`workspace/outputs/published_
 
 ---
 
+---
+
+### 6. The `lexicon` Pipeline
+**Script:** `process_lexicon.py`
+**Purpose:** Processes the `OA_Lexicon_eBL.csv` dataset, which maps epigraphic forms to base lexemes. Generates finetuning data for identifying lemmas from forms, rosetta alignment tables, and pretraining context matching lexemes to all their occurring derivatives. Also outputs a JSON mapping of lexemes to derivatives.
+
+**Sample Command:**
+```bash
+python3 process_lexicon.py
+```
+**Expected Outputs:**
+- `workspace/outputs/lexicon/lemma_finetune.csv`: Instructions to identify lemmas from transliteration forms.
+- `workspace/outputs/lexicon/rosetta_pretrain.csv`: Data alignments between forms, compact forms, orthography, and lexemes.
+- `workspace/outputs/lexicon/lemma_pretrain.csv`: Pretraining raw text containing lexemes and their corresponding derivatives.
+- `workspace/outputs/lexicon/lemma_derivatives.json`: JSON structured map from each lexeme to an array of its derivatives.
+
 ## Development Journal (Pipeline Homologation and Progress)
 
 We've achieved full integration and homologation of the `published_texts` and `dictionary` pipelines. Both pipelines now inherently construct and enforce the same logical structure, ultimately generating compatible `dictionary_parsed.jsonl` files and homogeneous `finetune`/`pretrain` CSVs.

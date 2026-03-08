@@ -27,6 +27,7 @@ PROMPT_GRAMMAR_PRETRAIN_TITLE = "# Morphological Annotation of Akkadian Cuneifor
 PROMPT_MEANING_FINETUNE_TRANS = "Provide the lexical definition of this Akkadian cuneiform %type_name% form"
 PROMPT_MEANING_FINETUNE_WORD = "Provide the lexical definition of this Akkadian form"
 PROMPT_LEMMA_FINETUNE = "Identify the Akkadian lemma of this %type_name% form"
+PROMPT_LEMMA_PRETRAIN_CONTENT = "# Lexeme: %lexeme%\nDerivates: %derivatives%"
 PROMPT_TRANS_AKK_TO_ENG = "Translate this Akkadian cuneiform %type_name% into English"
 PROMPT_TRANS_ENG_TO_AKK = "Translate this English text into Akkadian cuneiform (%type_name%)"
 PROMPT_TRANS_ENG_TO_AKK_WORD = "Translate this English lexical definition into an Akkadian form"
@@ -44,6 +45,8 @@ PROMPT_GRAMMAR_ITEM_PREFIX = "- %variable%: %value%"
 
 TRANS_TABLE_TEMPLATE = "| %h1% | %h2% |\n|---|---|\n"
 ROSETTA_TABLE_HEADER = "| Epigraphic Transliteration | Compact Epigraphic Transliteration | Akkadian Orthography | Lemma | Definition |\n|---|---|---|---|---|\n"
+ROSETTA_TABLE_HEADER_LEXICON = "| Epigraphic Transliteration | Compact Epigraphic Transliteration | Akkadian Orthography | Lemma | Type |\n|---|---|---|---|---|\n"
+
 
 # --- HELPERS ---
 
