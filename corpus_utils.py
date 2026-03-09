@@ -2,6 +2,7 @@ import csv
 import os
 import sqlite3
 import hashlib
+import re
 
 # --- CONFIGURATION CONSTANTS ---
 CSV_DIALECT_FINETUNE = {
@@ -54,6 +55,15 @@ def clean_translation(text):
     """Remove parentheses and extra spaces from English translations."""
     if not text: return ""
     return " ".join(text.replace('(', '').replace(')', '').split())
+
+def replace_gaps(text):
+    """Replace gaps (xxx, ..., …, [...]) with <|GAP|> token."""
+    if not text: return ""
+    # Replace dots and bracketed dots
+    text = re.sub(r'\[?\.\.\.\]?|\[?…\]?', '<|GAP|>', text)
+    # Replace contiguous x's (bounded by word limits to prevent breaking words like "textile")
+    text = re.sub(r'\b[xX]+\b', '<|GAP|>', text)
+    return text
 
 def linearize(text):
     if not text: return ""

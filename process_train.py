@@ -2,7 +2,7 @@ import csv
 import os
 from corpus_utils import (
     CSV_DIALECT_FINETUNE, CSV_DIALECT_PRETRAIN, Deduplicator, linearize,
-    PROMPT_TRANS_AKK_TO_ENG, PROMPT_TRANS_ENG_TO_AKK
+    PROMPT_TRANS_AKK_TO_ENG, PROMPT_TRANS_ENG_TO_AKK, replace_gaps
 )
 
 def process_train():
@@ -25,8 +25,8 @@ def process_train():
         reader = csv.DictReader(f)
         for row in reader:
             oare_id = row.get("oare_id", "").strip()
-            translit = row.get("transliteration", "").strip()
-            translat = row.get("translation", "").strip()
+            translit = replace_gaps(row.get("transliteration", "").strip())
+            translat = replace_gaps(row.get("translation", "").strip())
 
             if not translit or not translat or not oare_id:
                 continue
