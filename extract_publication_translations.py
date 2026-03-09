@@ -33,7 +33,7 @@ def get_akkadian_context_lines(page_text):
             include_indices.add(j)
             
     sorted_indices = sorted(list(include_indices))
-    #print(f">>>>>>>>>>>>>>> Akkadian text matched {len(sorted_indices)} lines from {len(lines)} lines")
+    print(f">>>>>>>>>>>>>>> Akkadian text matched {len(sorted_indices)} lines from {len(lines)} lines")
     
     result_lines = []
     for idx in sorted_indices:
@@ -43,12 +43,13 @@ def get_akkadian_context_lines(page_text):
 
 PRICE_PER_M_INPUT = 0.10 # gemini-2.5-flash-lite
 PRICE_PER_M_OUTPUT = 0.40 # gemini-2.5-flash-lite
-BATCH_SIZE = 10
+BATCH_SIZE = 2
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true", help="Estimate costs without querying LLM")
     parser.add_argument("--limit", type=int, default=0, help="Process only N entries")
+    parser.add_argument("--start", type=int, default=1, help="Start processing from specific record number (1-indexed)")
     parser.add_argument("--show-prompt", action="store_true", help="Print the prompt for debugging")
     args = parser.parse_args()
     
@@ -64,29 +65,38 @@ def main():
             has_akk = row.get("has_akkadian", "").strip().lower()
             if has_akk == "true":
                 records_to_process.append(row)
-                if args.limit > 0 and len(records_to_process) >= args.limit:
-                    break
 
-    print(f"Found {len(records_to_process)} records with Akkadian text to process.")
+    print(f"Total {len(records_to_process)} records with Akkadian text found in CSV.")
+    
+    # Adjust for --start logic
+    start_index = max(0, args.start - 1)
+    records_to_process = records_to_process[start_index:]
+    
+    # If the user sets a limit, we should limit AFTER applying the start slice
+    if args.limit > 0:
+        records_to_process = records_to_process[:args.limit]
+        
+    print(f"Starting execution at record {args.start}. {len(records_to_process)} records queued for processing.")
 
-    prompt_template = """You are an expert Assyriologist. Your task is to process the following OCR text from academic publications and identify possible Akkadian text and its English (or German/French/etc.) translation pairs.
+    prompt_template = """You are an expert Assyriologist. Your task is to process the following OCR text from academic publications and identify possible Akkadian texts and its translation to the document language, do not try to translate yourself, just extract the translation pairs found at the text verbatim.
 
 Input Texts:
 {batched_pages}
 
-Extract the pairs from all the provided texts into a valid JSON object matching this schema:
+Extract the pairs from all the provided texts into a valid JSON object matching this schema. Note: The source text translations could be in English, German, French, Turkish, etc. Use an appropriate 3-letter ISO language code (e.g., "eng", "deu", "fra", "tur") as the key for the modern language translation:
 {{
   "translations": [
     {{
-      "eng": "translated text in modern language, could be eng or others",
+      "<iso3_code>": "translated text in modern language",
       "akk": "transliterated or normalized Akkadian text"
     }}
   ],
-  "unpaired_akkadian": [
-    "akkadian text that could not be paired with a translation"
+  "unpaired": [
+    "akkadian text that could not be paired with a translation, do not repeat if already paired"
   ]
 }}
 
+No need to preserve the line breaks in any texts, just return the raw texts in one line.
 If there is no Akkadian text, or if you cannot confidently extract pairs or unpaired phrases, return empty lists. Do not add any markdown formatting, just provide the raw JSON without md entities or wrappers. STRICT REQUIREMENT: Ensure any literal backslash characters (\) found in the text are properly double-escaped (\\) so the JSON is completely valid.
 """
 
@@ -145,7 +155,11 @@ If there is no Akkadian text, or if you cannot confidently extract pairs or unpa
             batch = records_to_process[i:i+BATCH_SIZE]
             batched_texts = []
             
-            print(f"Processing batch {i // BATCH_SIZE + 1}/{(len(records_to_process) + BATCH_SIZE - 1) // BATCH_SIZE} (records {i+1} to {min(i+BATCH_SIZE, len(records_to_process))})")
+            # To display accurate absolute record numbers
+            absolute_start_record = args.start + i
+            absolute_end_record = absolute_start_record + len(batch) - 1
+            
+            print(f"Processing batch {i // BATCH_SIZE + 1}/{(len(records_to_process) + BATCH_SIZE - 1) // BATCH_SIZE} (absolute records {absolute_start_record} to {absolute_end_record})")
             
             for row in batch:
                 pdf_name = row.get("pdf_name", "")
@@ -156,40 +170,61 @@ If there is no Akkadian text, or if you cannot confidently extract pairs or unpa
             
             batched_pages = "\n----\n".join(batched_texts)
             prompt = prompt_template.format(batched_pages=batched_pages)
+            max_tokens = (len(prompt) / 4) * 1.5
+            print("prompt len:", len(prompt))
             
             if args.show_prompt:
                 print(f"--- Prompt (Batch {i // BATCH_SIZE + 1}) ---")
                 print(prompt)
                 print("-" * 40)
             
-            try:
-                response = client.models.generate_content(
-                    model='gemini-2.5-flash-lite',
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        temperature=0.1,
-                    )
-                )
-                
-                try:
-                    parsed = json.loads(response.text, strict=False)
-                except json.JSONDecodeError as de:
-                    # Fallback pattern for unescaped literal slashes generated by language models (e.g. \m or \a)
-                    cleaned_text = response.text.replace("\\", "\\\\").replace("\\\\n", "\\n").replace('\\\\"', '\\"')
-                    parsed = json.loads(cleaned_text, strict=False)
-                
-                # Output without per-document distinction as requested
-                out_f.write(json.dumps(parsed, ensure_ascii=False) + "\n")
-                out_f.flush()
-                
-            except Exception as e:
-                print(f"Failed to process batch {i // BATCH_SIZE + 1}: {e}")
-                # Print response text to log what failed
-                if 'response' in locals() and hasattr(response, 'text'):
-                    print(f"Bad response from LLM: {response.text}")
+            error_log = "workspace/outputs/publications/error_log.txt"
+            max_retries = 3
+            success = False
             
-            time.sleep(2) # Rate limit delay
+            for attempt in range(max_retries):
+                try:
+                    response = client.models.generate_content(
+                        model='gemini-2.5-flash-lite',
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            max_output_tokens=max_tokens,
+                            temperature=0.1,
+                        )
+                    )
+                    
+                    try:
+                        print("got response, will parse")
+                        parsed = json.loads(response.text, strict=False)
+                    except json.JSONDecodeError as de:
+                        # Fallback pattern for unescaped literal slashes generated by language models (e.g. \m or \a)
+                        cleaned_text = response.text.replace("\\", "\\\\").replace("\\\\n", "\\n").replace('\\\\"', '\\"')
+                        parsed = json.loads(cleaned_text, strict=False)
+                    
+                    # Output without per-document distinction as requested
+                    out_f.write(json.dumps(parsed, ensure_ascii=False) + "\n")
+                    out_f.flush()
+                    print("parsed and written")
+                    success = True
+                    break
+                    
+                except Exception as e:
+                    print(f"Attempt {attempt + 1} failed for batch {i // BATCH_SIZE + 1}: {e}")
+                    with open(error_log, "a", encoding="utf-8") as erf:
+                        erf.write(f"--- FAILED ATTEMPT {attempt + 1} BATCH {i // BATCH_SIZE + 1} (absolute start: {absolute_start_record}) ---\n")
+                        erf.write(f"Error: {e}\n")
+                        if 'response' in locals() and hasattr(response, 'text'):
+                            erf.write(f"Bad response from LLM:\n{response.text}\n")
+                        else:
+                            erf.write("No response from LLM or other error occurred.\n")
+                        erf.write("-----------------------\n")
+                    time.sleep((attempt + 1) * 2) # Backoff delay
+            
+            if not success:
+                print(f"Failed to process batch {i // BATCH_SIZE + 1} after {max_retries} attempts. See {error_log}")
+            
+            #time.sleep(2) # Rate limit delay
             
     print(f"Extraction complete! Results appended to {output_jsonl}")
 
