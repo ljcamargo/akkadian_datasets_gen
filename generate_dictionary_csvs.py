@@ -60,7 +60,7 @@ def main():
             # Process each meaning block
             for meaning_obj in meanings:
                 definition = meaning_obj.get("definition")
-                lemmas = meaning_obj.get("lemmas", [])
+                lemmas = meaning_obj.get("forms", [])
                 grammar = meaning_obj.get("grammar", [])
                 
                 joined_lemmas = ", ".join(lemmas) if lemmas else ""

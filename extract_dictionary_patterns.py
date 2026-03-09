@@ -103,7 +103,7 @@ def parse_definition(definition_text, global_lemmas):
         for part in meaning_parts:
             meanings.append({
                 "definition": part,
-                "lemmas": list(global_lemmas), # Independent copy
+                "forms": list(global_lemmas),
                 "grammar": list(grammar),
                 "references": list(references)
             })
@@ -125,7 +125,7 @@ def normalize_special(definition_text):
 
 def main():
     os.makedirs('workspace/outputs/dictionary', exist_ok=True)
-    input_file = 'eBL_Dictionary.csv'
+    input_file = 'workspace/eBL_Dictionary.csv'
     output_file = 'workspace/outputs/dictionary/dictionary_parsed.jsonl'
     
     with open(input_file, 'r', encoding='utf-8') as f:

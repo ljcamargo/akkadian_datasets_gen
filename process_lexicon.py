@@ -94,7 +94,7 @@ def process_lexicon():
         json_forms = []
         for norm, form in sorted(list(derivatives_map[lexeme])):
             if norm:
-                item_str = f"{norm} ({form})"
+                item_str = f"{form}"
             else:
                 item_str = form
                 

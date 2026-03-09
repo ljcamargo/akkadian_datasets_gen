@@ -295,7 +295,7 @@ def process_corpus(args):
                         "meanings": [
                             {
                                 "definition": dict_def,
-                                "lemmas": dict_lemmas,
+                                "forms": dict_lemmas,
                                 "grammar": grammar_list,
                                 "references": []
                             }
