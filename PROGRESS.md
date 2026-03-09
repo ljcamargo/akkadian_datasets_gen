@@ -11,7 +11,7 @@
 - OA_Lexicon_eBL.csv , (DONE) need to parse into TABLE, duplicates from pubished_texts?
 - publications.csv , huge list of docs, parse into MD, possible extract Assyrian (??)
 - Sentences_Oare_FirstWorld_LinNum.csv, ??? 
-- train.csv, finetune and possibly pretrain with MAPS
+- train.csv, (DONE) finetune and possibly pretrain with MAPS
 
 ## For Crawling
 - bibliography.csv

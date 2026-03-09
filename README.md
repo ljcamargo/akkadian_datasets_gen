@@ -138,6 +138,50 @@ python3 process_lexicon.py
 - `workspace/outputs/lexicon/lemma_pretrain.csv`: Pretraining raw text containing lexemes and their corresponding derivatives.
 - `workspace/outputs/lexicon/lemma_derivatives.json`: JSON structured map from each lexeme to an array of its derivatives.
 
+---
+
+### 7. The `publications` Pipeline
+This pipeline processes academic publication data (e.g. `publications.csv` which contains OCR'd PDF journals) to construct translation pairs and pretrain strings. It relies on two main scripts:
+
+#### Step 7a: Pretrain Formatting
+**Script:** `process_publications.py`
+**Purpose:** Reads the raw `publications.csv` dataset, automatically stripping invalid `\0` NUL bytes. Outputs formatted chunks of raw page strings safely embedded with real `\n` linebreaks for continuous learning.
+**Expected Outputs:**
+- `workspace/outputs/publications/publications_pretrain.csv`: Contiguous raw text pretraining files mapped to their PDF document page.
+
+#### Step 7b: Translation Pair Extraction (LLM)
+**Script:** `extract_publication_translations.py`
+**Purpose:** Finds OCR pages containing Akkadian strings, dynamically bounds the context using a clustered regex search to shorten query tokens, and batches them into the Gemini LLM. The LLM extracts the bilingual translation pairs (e.g., German to Akkadian) saving them as an ISO-lang mapped JSON array.
+**Sample Commands:**
+```bash
+python3 extract_publication_translations.py --dry-run --limit 10
+export GEMINI_API_KEY="your-api-key"
+python3 extract_publication_translations.py --start 1 
+```
+**Arguments:**
+- `--dry-run`: Computes an estimated generation logic and token pricing math without actually hitting the LLM.
+- `--limit`: Only processes a specific amount of lines.
+- `--start`: Resumes the task dynamically from a specified 1-indexed record.
+- `--show-prompt`: Debug utility printing the raw prompt strings sent to the Gemini pipeline.
+**Expected Outputs:**
+- `workspace/outputs/publications/publication_translations.jsonl`: Series of JSON objects identifying extracted pairings.
+- `workspace/outputs/publications/error_log.txt`: Fallback tracking for any batches that fail to parse successfully.
+
+---
+
+### 8. The `train` Pipeline
+**Script:** `process_train.py`
+**Purpose:** Processes a generic `train.csv` file consisting of thousands of direct string mapping pairs (`oare_id`, `transliteration`, `translation`). Constructs raw block datasets for pretraining and creates mapped epigraphic English-Akkadian pairing prompts for finetuning exactly matching the conventions of `published_texts`.
+
+**Sample Command:**
+```bash
+python3 process_train.py
+```
+**Expected Outputs:**
+- `workspace/outputs/train/translations_finetune.csv`: Bidirectional instructions querying between Epigraphic Transliteration and English translation.
+- `workspace/outputs/train/translations_pretrain.csv`: Contiguous raw string sequences formatted down directly via `linearize()`. E.g: `# Akkadian Transliteration\n(OARE:38dcfa0)\nText...` 
+*(Note: OARE specific UUIDs are implicitly substring trimmed down to their initial 8 characters to save generic token costs on indexing.)*
+
 ## Development Journal (Pipeline Homologation and Progress)
 
 We've achieved full integration and homologation of the `published_texts` and `dictionary` pipelines. Both pipelines now inherently construct and enforce the same logical structure, ultimately generating compatible `dictionary_parsed.jsonl` files and homogeneous `finetune`/`pretrain` CSVs.
