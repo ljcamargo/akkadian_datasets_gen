@@ -14,7 +14,7 @@ def remove_nul(file_iter):
 def get_akkadian_context_lines(page_text):
     separator = '\\n' if '\\n' in page_text and '\n' not in page_text else '\n'
     lines = page_text.split(separator)
-    print(f">>>>>>>>>>>>>>> Total lines: {len(lines)}")
+    #print(f">>>>>>>>>>>>>>> Total lines: {len(lines)}")
     pattern = re.compile(r'(?:[\w\.]+[-])+[\w\.]+', re.UNICODE) 
     
     akk_line_indices = []
@@ -33,7 +33,7 @@ def get_akkadian_context_lines(page_text):
             include_indices.add(j)
             
     sorted_indices = sorted(list(include_indices))
-    print(f">>>>>>>>>>>>>>> Akkadian text matched {len(sorted_indices)} lines from {len(lines)} lines")
+    #print(f">>>>>>>>>>>>>>> Akkadian text matched {len(sorted_indices)} lines from {len(lines)} lines")
     
     result_lines = []
     for idx in sorted_indices:
@@ -43,6 +43,7 @@ def get_akkadian_context_lines(page_text):
 
 PRICE_PER_M_INPUT = 0.10 # gemini-2.5-flash-lite
 PRICE_PER_M_OUTPUT = 0.40 # gemini-2.5-flash-lite
+BATCH_SIZE = 10
 
 def main():
     parser = argparse.ArgumentParser()
@@ -68,12 +69,12 @@ def main():
 
     print(f"Found {len(records_to_process)} records with Akkadian text to process.")
 
-    prompt_template = """You are an expert Assyriologist. Your task is to process the following OCR text from an academic publication and identify possible Akkadian text and its English (or German/French/etc.) translation pairs.
+    prompt_template = """You are an expert Assyriologist. Your task is to process the following OCR text from academic publications and identify possible Akkadian text and its English (or German/French/etc.) translation pairs.
 
-Input Text (Page {page} from {pdf}):
-{page_text}
+Input Texts:
+{batched_pages}
 
-Extract the pairs into a valid JSON object matching this schema:
+Extract the pairs from all the provided texts into a valid JSON object matching this schema:
 {{
   "translations": [
     {{
@@ -86,28 +87,35 @@ Extract the pairs into a valid JSON object matching this schema:
   ]
 }}
 
-If there is no Akkadian text, or if you cannot confidently extract pairs or unpaired phrases, return empty lists. Do not add any markdown formatting, just provide the raw JSON without md entities or wrappers.
+If there is no Akkadian text, or if you cannot confidently extract pairs or unpaired phrases, return empty lists. Do not add any markdown formatting, just provide the raw JSON without md entities or wrappers. STRICT REQUIREMENT: Ensure any literal backslash characters (\) found in the text are properly double-escaped (\\) so the JSON is completely valid.
 """
 
     if args.dry_run:
         total_input_chars = 0
         total_output_tokens_estimated = 0
         
-        for row in records_to_process:
-            pdf_name = row.get("pdf_name", "")
-            page = row.get("page", "")
-            page_text = row.get("page_text", "")
-            page_text = get_akkadian_context_lines(page_text)
+        for i in range(0, len(records_to_process), BATCH_SIZE):
+            batch = records_to_process[i:i+BATCH_SIZE]
+            batched_texts = []
             
-            prompt = prompt_template.format(page=page, pdf=pdf_name, page_text=page_text)
-            if args.show_prompt:
-                print(f"--- Prompt for {pdf_name} p.{page} ---")
+            for row in batch:
+                pdf_name = row.get("pdf_name", "")
+                page = row.get("page", "")
+                page_text = row.get("page_text", "")
+                page_text = get_akkadian_context_lines(page_text)
+                batched_texts.append(f"--- Page {page} from {pdf_name} ---\n{page_text}")
+            
+            batched_pages = "\n----\n".join(batched_texts)
+            prompt = prompt_template.format(batched_pages=batched_pages)
+            
+            if args.show_prompt and i == 0:
+                print(f"--- Sample Prompt (Batch 1) ---")
                 print(prompt)
                 print("-" * 40)
             
             total_input_chars += len(prompt)
-            # rough estimate: 200 output tokens per page
-            total_output_tokens_estimated += 200
+            # rough estimate: 200 output tokens per page in the batch
+            total_output_tokens_estimated += 200 * len(batch)
             
         total_input_tokens = total_input_chars / 4
         
@@ -133,17 +141,24 @@ If there is no Akkadian text, or if you cannot confidently extract pairs or unpa
     
     print("Starting LLM extraction...")
     with open(output_jsonl, "a", encoding="utf-8") as out_f:
-        for idx, row in enumerate(records_to_process):
-            pdf_name = row.get("pdf_name", "")
-            page = row.get("page", "")
-            page_text = row.get("page_text", "")
-            page_text = get_akkadian_context_lines(page_text)
+        for i in range(0, len(records_to_process), BATCH_SIZE):
+            batch = records_to_process[i:i+BATCH_SIZE]
+            batched_texts = []
             
-            print(f"Processing record {idx+1}/{len(records_to_process)}: {pdf_name} p.{page}")
+            print(f"Processing batch {i // BATCH_SIZE + 1}/{(len(records_to_process) + BATCH_SIZE - 1) // BATCH_SIZE} (records {i+1} to {min(i+BATCH_SIZE, len(records_to_process))})")
             
-            prompt = prompt_template.format(page=page, pdf=pdf_name, page_text=page_text)
+            for row in batch:
+                pdf_name = row.get("pdf_name", "")
+                page = row.get("page", "")
+                page_text = row.get("page_text", "")
+                page_text = get_akkadian_context_lines(page_text)
+                batched_texts.append(f"--- Page {page} from {pdf_name} ---\n{page_text}")
+            
+            batched_pages = "\n----\n".join(batched_texts)
+            prompt = prompt_template.format(batched_pages=batched_pages)
+            
             if args.show_prompt:
-                print(f"--- Prompt for {pdf_name} p.{page} ---")
+                print(f"--- Prompt (Batch {i // BATCH_SIZE + 1}) ---")
                 print(prompt)
                 print("-" * 40)
             
@@ -157,18 +172,22 @@ If there is no Akkadian text, or if you cannot confidently extract pairs or unpa
                     )
                 )
                 
-                parsed = json.loads(response.text)
+                try:
+                    parsed = json.loads(response.text, strict=False)
+                except json.JSONDecodeError as de:
+                    # Fallback pattern for unescaped literal slashes generated by language models (e.g. \m or \a)
+                    cleaned_text = response.text.replace("\\", "\\\\").replace("\\\\n", "\\n").replace('\\\\"', '\\"')
+                    parsed = json.loads(cleaned_text, strict=False)
                 
-                res_obj = {
-                    "pdf_name": pdf_name,
-                    "page": page,
-                    "extracted": parsed
-                }
-                out_f.write(json.dumps(res_obj, ensure_ascii=False) + "\n")
+                # Output without per-document distinction as requested
+                out_f.write(json.dumps(parsed, ensure_ascii=False) + "\n")
                 out_f.flush()
                 
             except Exception as e:
-                print(f"Failed to process record {pdf_name} p.{page}: {e}")
+                print(f"Failed to process batch {i // BATCH_SIZE + 1}: {e}")
+                # Print response text to log what failed
+                if 'response' in locals() and hasattr(response, 'text'):
+                    print(f"Bad response from LLM: {response.text}")
             
             time.sleep(2) # Rate limit delay
             
