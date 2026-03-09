@@ -3,12 +3,43 @@ import csv
 import json
 import argparse
 import time
+import re
 from google import genai
 from google.genai import types
 
 def remove_nul(file_iter):
     for line in file_iter:
         yield line.replace('\0', '')
+
+def get_akkadian_context_lines(page_text):
+    separator = '\\n' if '\\n' in page_text and '\n' not in page_text else '\n'
+    lines = page_text.split(separator)
+    print(f">>>>>>>>>>>>>>> Total lines: {len(lines)}")
+    pattern = re.compile(r'(?:[\w\.]+[-])+[\w\.]+', re.UNICODE) 
+    
+    akk_line_indices = []
+    for i, line in enumerate(lines):
+        matches = pattern.findall(line)
+        if len(matches) >= 2:
+            akk_line_indices.append(i)
+            
+    if not akk_line_indices:
+        print(">>>>>>>>>>>>>>> No Akkadian text matched")
+        return page_text
+        
+    include_indices = set()
+    for idx in akk_line_indices:
+        for j in range(max(0, idx - 2), min(len(lines), idx + 3)):
+            include_indices.add(j)
+            
+    sorted_indices = sorted(list(include_indices))
+    print(f">>>>>>>>>>>>>>> Akkadian text matched {len(sorted_indices)} lines from {len(lines)} lines")
+    
+    result_lines = []
+    for idx in sorted_indices:
+        result_lines.append(lines[idx])
+        
+    return '\n'.join(result_lines)
 
 PRICE_PER_M_INPUT = 0.10 # gemini-2.5-flash-lite
 PRICE_PER_M_OUTPUT = 0.40 # gemini-2.5-flash-lite
@@ -17,6 +48,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true", help="Estimate costs without querying LLM")
     parser.add_argument("--limit", type=int, default=0, help="Process only N entries")
+    parser.add_argument("--show-prompt", action="store_true", help="Print the prompt for debugging")
     args = parser.parse_args()
     
     input_file = "workspace/publications.csv"
@@ -65,8 +97,14 @@ If there is no Akkadian text, or if you cannot confidently extract pairs or unpa
             pdf_name = row.get("pdf_name", "")
             page = row.get("page", "")
             page_text = row.get("page_text", "")
+            page_text = get_akkadian_context_lines(page_text)
             
             prompt = prompt_template.format(page=page, pdf=pdf_name, page_text=page_text)
+            if args.show_prompt:
+                print(f"--- Prompt for {pdf_name} p.{page} ---")
+                print(prompt)
+                print("-" * 40)
+            
             total_input_chars += len(prompt)
             # rough estimate: 200 output tokens per page
             total_output_tokens_estimated += 200
@@ -99,14 +137,19 @@ If there is no Akkadian text, or if you cannot confidently extract pairs or unpa
             pdf_name = row.get("pdf_name", "")
             page = row.get("page", "")
             page_text = row.get("page_text", "")
+            page_text = get_akkadian_context_lines(page_text)
             
             print(f"Processing record {idx+1}/{len(records_to_process)}: {pdf_name} p.{page}")
             
             prompt = prompt_template.format(page=page, pdf=pdf_name, page_text=page_text)
+            if args.show_prompt:
+                print(f"--- Prompt for {pdf_name} p.{page} ---")
+                print(prompt)
+                print("-" * 40)
             
             try:
                 response = client.models.generate_content(
-                    model='gemini-2.5-flash',
+                    model='gemini-2.5-flash-lite',
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
