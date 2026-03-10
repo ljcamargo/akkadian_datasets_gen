@@ -170,6 +170,9 @@ python3 extract_publication_translations.py --start 1
 ---
 
 ### 8. The `train` Pipeline
+This pipeline processes generic training datasets with pairing pairs (`oare_id`, `transliteration`, `translation`) into formatted mapping sequences for baseline continuous learning, as well as complex instructional parsing logic payloads.
+
+#### Step 8a: Baseline Format Conversion
 **Script:** `process_train.py`
 **Purpose:** Processes a generic `train.csv` file consisting of thousands of direct string mapping pairs (`oare_id`, `transliteration`, `translation`). Constructs raw block datasets for pretraining and creates mapped epigraphic English-Akkadian pairing prompts for finetuning exactly matching the conventions of `published_texts`.
 
@@ -181,6 +184,16 @@ python3 process_train.py
 - `workspace/outputs/train/translations_finetune.csv`: Bidirectional instructions querying between Epigraphic Transliteration and English translation.
 - `workspace/outputs/train/translations_pretrain.csv`: Contiguous raw string sequences formatted down directly via `linearize()`. E.g: `# Akkadian Transliteration\n(OARE:38dcfa0)\nText...` 
 *(Note: OARE specific UUIDs are implicitly substring trimmed down to their initial 8 characters to save generic token costs on indexing.)*
+
+#### Step 8b: Reasoned Translation Logic Generation
+**Script:** `process_reasoned_translations.py`
+**Purpose:** Iteratively constructs a "Chain-of-Thought" (CoT) reasoning map for LLM assisted instruction mapping. Slices `train.csv` strings across native bounding gaps (`<|GAP|>`) and hyphenated composites. It leverages recursive logic bounding terms incrementally via checking against `lemma_derivatives.json` and natively fetching exact complex attributes off `final_dictionary.json`.
+**Sample Command:**
+```bash
+python3 process_reasoned_translations.py
+```
+**Expected Outputs:**
+- `workspace/outputs/train/reasoned_translations_finetune.csv`: A secondary version of the `train` corpus instructed to translate Akkadian to English by first constructing an explicit morphological `REASONING:` dict (formatted to highly minified YAML arrays) specifying exactly what components map to what grammatical rules, previous to emitting the expected `TRANSLATION:`.
 
 ## Development Journal (Pipeline Homologation and Progress)
 
