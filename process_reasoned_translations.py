@@ -41,7 +41,9 @@ def format_entry(lemma, entry):
                     grammars.append(g.get("parse"))
             else:
                 if g not in grammars:
-                    grammars.append(g)
+                    g_copy = g.copy()
+                    del g_copy["parse"]
+                    grammars.append(g_copy)
     
     if not meanings and entry.get("original_definition"):
         meanings.append(entry.get("original_definition"))
@@ -161,6 +163,7 @@ def process_reasoned():
             reasoning_list = []
             words = translit.split()
             for w in words:
+                print(f">>>>> >>>>> WORD: {w}")
                 resolutions = resolve_composite(w, is_first=True, is_last=True)
                 if len(resolutions) == 1:
                     cand, r = resolutions[0]
