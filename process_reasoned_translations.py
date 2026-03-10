@@ -1,7 +1,9 @@
 import csv
 import os
+
 import json
 import re
+import yaml
 from corpus_utils import CSV_DIALECT_FINETUNE, replace_gaps
 
 print("Loading dictionaries...")
@@ -29,24 +31,26 @@ print("Dictionaries loaded.")
 
 def format_entry(lemma, entry):
     meanings = []
-    grammars = set()
+    grammars = []
     for m in entry.get("meanings", []):
-        if m.get("definition"):
+        if m.get("definition") and m.get("definition") not in meanings:
             meanings.append(m.get("definition"))
         for g in m.get("grammar", []):
             if g.get("parse"):
-                grammars.add(g.get("parse"))
+                if g.get("parse") not in grammars:
+                    grammars.append(g.get("parse"))
             else:
-                grammars.add(str(g))
+                if g not in grammars:
+                    grammars.append(g)
     
     if not meanings and entry.get("original_definition"):
         meanings.append(entry.get("original_definition"))
         
-    res = f"  Lemma: {lemma}\n"
+    res = {"Lemma": lemma}
     if meanings:
-        res += f"  Meanings: {'; '.join(meanings)}\n"
+        res["Meanings"] = '; '.join(meanings)
     if grammars:
-        res += f"  Grammar: {'; '.join(sorted(grammars))}\n"
+        res["Grammar"] = grammars
     return res
 
 def fetch_dict_info(cand):
@@ -68,10 +72,10 @@ def fetch_dict_info(cand):
 
 def direct_lookup(term, is_first=False, is_last=False):
     if re.match(r'^[0-9\./]+$', term):
-        return term, "number"
+        return term, {"Type": "number"}
     
     if term == "<|GAP|>" or "<|GAP|>" in term:
-        return term, "gap/missing token"
+        return term, {"Type": "gap/missing token"}
         
     candidates = [term]
     if is_last:
@@ -87,7 +91,7 @@ def direct_lookup(term, is_first=False, is_last=False):
     clean_for_caps = re.sub(r'\(.*?\)', '', term)
     clean_for_caps = ''.join([c for c in clean_for_caps if c.isalpha()])
     if len(clean_for_caps) > 0 and clean_for_caps.isupper():
-        return term, "Proper Noun"
+        return term, {"Type": "Proper Noun"}
         
     return term, None
 
@@ -107,7 +111,7 @@ def resolve_composite(term, is_first=False, is_last=False):
         right_res = resolve_composite(right_term, is_first=False, is_last=True)
         
         def count_resolved(res_list):
-            return sum(1 for c, r in res_list if r != "Unknown")
+            return sum(1 for c, r in res_list if isinstance(r, dict) and r.get("Type") != "Unknown")
             
         score_last = count_resolved(left_res) + count_resolved(right_res)
         
@@ -126,7 +130,7 @@ def resolve_composite(term, is_first=False, is_last=False):
             else:
                 return left_res2 + right_res2
                 
-    return [(term, "Unknown")]
+    return [(term, {"Type": "Unknown"})]
 
 def process_reasoned():
     input_file = "workspace/train.csv"
@@ -154,22 +158,25 @@ def process_reasoned():
             translit = replace_gaps(translit)
             translat = replace_gaps(translat)
             print(">>>>> Processing entry with transliteration:", translit)
-            reasoning_blocks = []
+            reasoning_list = []
             words = translit.split()
             for w in words:
-                print(">>>>>>>>>> Processing word:", w)
                 resolutions = resolve_composite(w, is_first=True, is_last=True)
                 if len(resolutions) == 1:
                     cand, r = resolutions[0]
-                    reasoning_blocks.append(f" {w}:\n{r}")
+                    item = {"Word": w}
+                    item.update(r)
+                    reasoning_list.append(item)
                 else:
-                    lines = [f"  {w}:\n"]
+                    parts_list = []
                     for cand, r in resolutions:
-                        lines.append(f"  {cand}:\n{r}")
-                    reasoning_blocks.append("\n".join(lines))
+                        part_item = {"Word": cand}
+                        part_item.update(r)
+                        parts_list.append(part_item)
+                    reasoning_list.append({"Word": w, "Parts": parts_list})
             
-            reasoning_str = "\n".join(reasoning_blocks)
-            result_str = f"\nREASONING:\n{reasoning_str}\nTRANSLATION:\n{translat}\n"
+            reasoning_str = yaml.dump(reasoning_list, default_flow_style=False, sort_keys=False, allow_unicode=True)
+            result_str = f"REASONING:\n{reasoning_str.strip()}\nTRANSLATION:\n{translat}"
             
             writer.writerow([prompt_inst, translit, result_str])
             count += 1
