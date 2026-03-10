@@ -36,15 +36,17 @@ def format_entry(lemma, entry):
         for g in m.get("grammar", []):
             if g.get("parse"):
                 grammars.add(g.get("parse"))
+            else:
+                grammars.add(str(g))
     
     if not meanings and entry.get("original_definition"):
         meanings.append(entry.get("original_definition"))
         
-    res = f"Lemma: {lemma}"
+    res = f"  Lemma: {lemma}\n"
     if meanings:
-        res += f", Meanings: {'; '.join(meanings)}"
+        res += f"  Meanings: {'; '.join(meanings)}\n"
     if grammars:
-        res += f", Grammar: {'; '.join(sorted(grammars))}"
+        res += f"  Grammar: {'; '.join(sorted(grammars))}\n"
     return res
 
 def fetch_dict_info(cand):
@@ -65,8 +67,11 @@ def fetch_dict_info(cand):
     return None
 
 def direct_lookup(term, is_first=False, is_last=False):
+    if re.match(r'^[0-9\./]+$', term):
+        return term, "number"
+    
     if term == "<|GAP|>" or "<|GAP|>" in term:
-        return term, "gap/missing"
+        return term, "gap/missing token"
         
     candidates = [term]
     if is_last:
@@ -78,9 +83,6 @@ def direct_lookup(term, is_first=False, is_last=False):
         res = fetch_dict_info(cand)
         if res:
             return cand, res
-            
-    if re.match(r'^[0-9\./]+$', term):
-        return term, "number"
         
     clean_for_caps = re.sub(r'\(.*?\)', '', term)
     clean_for_caps = ''.join([c for c in clean_for_caps if c.isalpha()])
@@ -91,6 +93,7 @@ def direct_lookup(term, is_first=False, is_last=False):
 
 def resolve_composite(term, is_first=False, is_last=False):
     cand, res = direct_lookup(term, is_first, is_last)
+    print(f"Resolving '{term}': direct lookup candidate '{cand}' with result?: {res is not None}")
     if res:
         return [(cand, res)]
         
@@ -150,18 +153,19 @@ def process_reasoned():
                 
             translit = replace_gaps(translit)
             translat = replace_gaps(translat)
-
+            print(">>>>> Processing entry with transliteration:", translit)
             reasoning_blocks = []
             words = translit.split()
             for w in words:
+                print(">>>>>>>>>> Processing word:", w)
                 resolutions = resolve_composite(w, is_first=True, is_last=True)
                 if len(resolutions) == 1:
                     cand, r = resolutions[0]
-                    reasoning_blocks.append(f"'{w}': {r}")
+                    reasoning_blocks.append(f" {w}:\n{r}")
                 else:
-                    lines = [f"{w}:"]
+                    lines = [f"  {w}:\n"]
                     for cand, r in resolutions:
-                        lines.append(f"\t{cand}: {r}")
+                        lines.append(f"  {cand}:\n{r}")
                     reasoning_blocks.append("\n".join(lines))
             
             reasoning_str = "\n".join(reasoning_blocks)
