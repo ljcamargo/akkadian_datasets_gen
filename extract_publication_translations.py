@@ -80,7 +80,11 @@ If there is no Akkadian text, or if you cannot confidently extract pairs or unpa
                 page = row.get("page", "")
                 page_text = row.get("page_text", "")
                 page_text = get_akkadian_context_lines(page_text)
-                batched_texts.append(f"--- Page {page} from {pdf_name} ---\n{page_text}")
+                if page_text:
+                    batched_texts.append(f"--- Page {page} from {pdf_name} ---\n{page_text}")
+            
+            if not batched_texts:
+                continue
             
             batched_pages = "\n----\n".join(batched_texts)
             prompt = prompt_template.format(batched_pages=batched_pages)
@@ -133,7 +137,12 @@ If there is no Akkadian text, or if you cannot confidently extract pairs or unpa
                 page = row.get("page", "")
                 page_text = row.get("page_text", "")
                 page_text = get_akkadian_context_lines(page_text)
-                batched_texts.append(f"--- Page {page} from {pdf_name} ---\n{page_text}")
+                if page_text:
+                    batched_texts.append(f"--- Page {page} from {pdf_name} ---\n{page_text}")
+            
+            if not batched_texts:
+                print(f"Skipping batch {i // BATCH_SIZE + 1} as no Akkadian text was found in any pages.")
+                continue
             
             batched_pages = "\n----\n".join(batched_texts)
             prompt = prompt_template.format(batched_pages=batched_pages)

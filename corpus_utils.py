@@ -76,18 +76,27 @@ def remove_nul(file_iter):
 def get_akkadian_context_lines(page_text):
     separator = '\\n' if '\\n' in page_text and '\n' not in page_text else '\n'
     lines = page_text.split(separator)
-    #print(f">>>>>>>>>>>>>>> Total lines: {len(lines)}")
-    pattern = re.compile(r'(?:[\w\.]+[-])+[\w\.]+', re.UNICODE) 
+    
+    # Syllable pattern: matches non-numbers separated by -, e.g. a-na, ma-nu-um
+    # We use a pattern that strictly accepts letters and specific transliteration chars, but no digits 0-9.
+    syl_pattern = re.compile(r'(?<!\d)[a-zA-ZšḫṣŠ₄ṭ₅Ḫ₁₀₈₆₃Ṣ₇]+(?:-[a-zA-ZšḫṣŠ₄ṭ₅Ḫ₁₀₈₆₃Ṣ₇]+)+(?!\d)')
+    special_char_pattern = re.compile(r'[šḫṣŠ₄ṭ₅Ḫ₁₀₈₆₃Ṣ₇]')
+    keywords = ["a-na", "i-na", "ša", "šu", "i-ma", "u-ma", "um-", "-tim", "KÙ", "DUMU", "GIN", "IGI", "URDU", "KIŠIB"]
     
     akk_line_indices = []
     for i, line in enumerate(lines):
-        matches = pattern.findall(line)
-        if len(matches) >= 2:
-            akk_line_indices.append(i)
+        # Improved Syllable Pattern at least two times
+        if len(syl_pattern.findall(line)) >= 2:
+            # AND ( special chars >= 2 OR keyword >= 1 )
+            special_count = len(special_char_pattern.findall(line))
+            has_keyword = any(kw in line for kw in keywords)
+            
+            if special_count >= 2 or has_keyword:
+                akk_line_indices.append(i)
             
     if not akk_line_indices:
-        print(">>>>>>>>>>>>>>> No Akkadian text matched")
-        return page_text
+        #print(">>>>>>>>>>>>>>> No Akkadian text matched", page_text[:100])
+        return ""
         
     include_indices = set()
     for idx in akk_line_indices:
@@ -95,7 +104,7 @@ def get_akkadian_context_lines(page_text):
             include_indices.add(j)
             
     sorted_indices = sorted(list(include_indices))
-    print(f">>>>>>>>>>>>>>> Akkadian text matched {len(sorted_indices)} lines from {len(lines)} lines")
+    #print(f">>>>>>>>>>>>>>> Akkadian text matched {len(sorted_indices)} lines from {len(lines)} lines")
     
     result_lines = []
     for idx in sorted_indices:
