@@ -183,7 +183,7 @@ def generate_dictionary_csvs(input_jsonl, output_dir):
     dedup = Deduplicator(db_path)
     
     rosetta_buffer = []
-    type_name = "word"
+    type_name = "akkadian epigraphic transliteration"
     
     with open(input_jsonl, "r", encoding="utf-8") as f:
         for line in f:
@@ -231,7 +231,7 @@ def generate_dictionary_csvs(input_jsonl, output_dir):
                             linearize(cleaned_def, is_finetune=True)
                         ])
                         ft_writers["translations_finetune"].writerow([
-                            linearize(PROMPT_TRANS_ENG_TO_AKK_WORD, is_finetune=True),
+                            linearize(PROMPT_TRANS_ENG_TO_AKK.replace("%type_name%", type_name), is_finetune=True),
                             linearize(cleaned_def, is_finetune=True),
                             linearize(word, is_finetune=True)
                         ])
@@ -253,7 +253,7 @@ def generate_dictionary_csvs(input_jsonl, output_dir):
                         ])
                         
                 if definition and dedup.is_unique("dict_pt", word, definition, joined_lemmas, joined_grammar):
-                    content = f"# Dictionary Entry\nWord: {word}\n"
+                    content = f"# Akkadian Transliteration Dictionary Entry\nWord: {word}\n"
                     if joined_lemmas: content += f"Lemma: {joined_lemmas}\n"
                     content += f"Definition: {definition}\n"
                     if joined_grammar: content += f"Grammar: {joined_grammar}\n"

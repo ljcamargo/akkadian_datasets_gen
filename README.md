@@ -189,6 +189,20 @@ python3 process_reasoned_translations.py
 **Expected Outputs:**
 - `workspace/outputs/train/reasoned_translations_finetune.csv`: A secondary version of the `train` corpus instructed to translate Akkadian to English by first constructing an explicit morphological `REASONING:` dict (formatted to highly minified YAML arrays) specifying exactly what components map to what grammatical rules, previous to emitting the expected `TRANSLATION:`.
 
+---
+
+### 9. Dataset Merging & Final Assembly
+**Script:** `merge_csvs.py`
+**Purpose:** Collects all discrete `_finetune.csv` and `_pretrain.csv` targets natively emitted from all internal pipelines throughout `workspace/outputs/` and fuses them respectively into single master `finetune.csv` and `pretrain.csv` database files.
+**Sample Command:**
+```bash
+python3 merge_csvs.py
+```
+**Caveats:**
+- The list of imported target arrays is strictly hard-coded internally instead of scraped automatically via variables, thereby structurally enforcing headers while permitting developers to individually cherry-pick files explicitly to tailor final AI model outputs.
+
+
+
 ## Development Journal (Pipeline Homologation and Progress)
 
 We've achieved full integration and homologation of the `published_texts` and `dictionary` pipelines. Both pipelines now inherently construct and enforce the same logical structure, ultimately generating compatible `dictionary_parsed.jsonl` files and homogeneous `finetune`/`pretrain` CSVs.

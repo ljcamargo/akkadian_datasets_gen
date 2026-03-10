@@ -21,4 +21,7 @@ python3 process_train.py
 echo "==> Running process_reasoned_translations.py"
 python3 process_reasoned_translations.py
 
+echo "==> Running merge_csvs.py"
+python3 merge_csvs.py
+
 echo "All pipelines executed successfully."
