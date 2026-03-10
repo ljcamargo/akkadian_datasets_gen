@@ -40,6 +40,7 @@ PROMPT_TRANSFORM_SPELL_TO_COMPACT = "Convert this Akkadian Transliteration from 
 TITLE_TRANS_PT_TO_ENG = "# Akkadian %type_name% Translation to English"
 TITLE_TRANS_PT_FROM_ENG = "# English to Akkadian %type_name% Translation"
 TITLE_ROSETTA_PT = "# Akkadian Transliteration Alignment"
+ROSETTA_HEADER_DICTIONARY = "| Akkadian Transliteration | Lemma | Definition | Grammar |\n|---|---|---|---|\n"
 
 PROMPT_GRAMMAR_PRETRAIN_CONTENT = "%title%\n%word%\n%grammar%"
 PROMPT_GRAMMAR_ITEM_PREFIX = "- %variable%: %value%"

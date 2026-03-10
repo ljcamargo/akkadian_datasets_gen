@@ -11,7 +11,11 @@ The pipeline generates two distinct types of `.csv` datasets, each serving a spe
 
 ## System Architecture & Workflows
 
-The system currently processes data from two major sources: a corpus of "Published Texts" and a "Dictionary" database. Both are independently processed into a homologated `dictionary_parsed.jsonl` schema and subsequently output as task-specific `.csv` datasets (e.g., translation, grammar parsing, lemma identification).
+The system natively utilizes a unified execution file:
+```bash
+./run_pipelines.sh
+```
+This utility sequentially builds all `process_*.py` datasets into the `/workspace/outputs/` directory to construct the final Akkadian tokenization models across published texts, lexicons, dictionaries, and publications.
 
 ---
 
@@ -62,22 +66,22 @@ python3 process_published_texts.py --input workspace/oare_epigraphies.jsonl --st
 ---
 
 ### 3. The `dictionary` Pipeline
-This relies on three distinct scripts to address the complex irregularities of `eBL_Dictionary.csv`.
+This relies on scripts to address the complex irregularities of `eBL_Dictionary.csv`.
 
-#### Step 3a: Pattern Extraction
-**Script:** `extract_dictionary_patterns.py`
-**Purpose:** Applies regex heuristics to decompose complex dictionary CSV strings. Strips Roman numeral disambiguators, cleanly splits multiple definition blocks (`;` or `,`), and cleanly translates abbreviated grammar variables (`"3 m. sg. acc. suff."`) into pure JSON mappings (`{"person": "third", "gender": "masculine", "number": "singular", "case": "accusative", "suffix": true}`).
+#### Step 3a: Dictionary Pattern Extraction & CSV Generation
+**Script:** `process_dictionaries.py`
+**Purpose:** Applies regex heuristics to decompose complex dictionary CSV strings (stripping Roman numeral disambiguators, cleanly splitting multiple definition blocks and translating abbreviated grammar variables to JSON mappings). Then it reads the cleaned `dictionary_parsed.jsonl` output and compiles it immediately into discrete `_finetune.csv` and `_pretrain.csv` targets mirroring the published texts pipeline.
 **Sample Command:**
 ```bash
-python3 extract_dictionary_patterns.py
+python3 process_dictionaries.py
 ```
 **Expected Outputs:**
-- `workspace/outputs/dictionary/dictionary_parsed.jsonl` 
-- Features the `special` boolean flag. If the regex falls short on a difficult entry, it flags `"special": true`.
+- `workspace/outputs/dictionary/dictionary_parsed.jsonl` (Features the `special` boolean flag for entries that failed regex heuristics).
+- Output datasets like `lemma_finetune.csv`, `rosetta_pretrain.csv`, etc., featuring mirrored English-to-Akkadian inverse instructions.
 
-#### Step 3b: LLM Intervention
+#### Step 3b: Optional LLM Intervention
 **Script:** `fill_special_dictionary.py`
-**Purpose:** Processes all rows in `dictionary_parsed.jsonl` marked `"special": true` using the Gemini API. The LLM coerces unstructured dictionary edge-cases to match the clean JSON nested-array schema, and then marks them `"special": false`.
+**Purpose:** Processes all rows in `dictionary_parsed.jsonl` marked `"special": true` using the Gemini API. The LLM coerces unstructured dictionary edge-cases to match the clean JSON nested-array schema, and then marks them `"special": false`. Once completed, you can simply re-run `process_dictionaries.py` or a generation-specific step to repopulate the finished variables into the final CSV exports.
 **Sample Command:**
 ```bash
 export GEMINI_API_KEY="your-api-key"
@@ -85,16 +89,6 @@ python3 fill_special_dictionary.py
 ```
 **Caveats:**
 - Requires export of an active `GEMINI_API_KEY`. Without it, the script will halt.
-
-#### Step 3c: Assembly
-**Script:** `generate_dictionary_csvs.py`
-**Purpose:** Reads the cleaned `dictionary_parsed.jsonl` and compiles it into discrete `_finetune.csv` and `_pretrain.csv` targets matching the outputs from the published texts pipeline.
-**Sample Command:**
-```bash
-python3 generate_dictionary_csvs.py
-```
-**Caveats:** 
-- Output datasets correctly generate mirrored English-to-Akkadian inverse instructions (translating English word definitions back to Akkadian form queries).
 
 ---
 
