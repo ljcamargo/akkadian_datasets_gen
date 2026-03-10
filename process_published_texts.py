@@ -199,9 +199,9 @@ def process_corpus(args):
                             if dedup.is_unique("grammar", type_name, q_val, parse_raw):
                                 # Finetune
                                 ft_writers["grammar_finetune"].writerow([
-                                    PROMPT_GRAMMAR_FINETUNE.replace("%type_name%", type_name),
-                                    q_val,
-                                    linearize(parse_raw)
+                                    linearize(PROMPT_GRAMMAR_FINETUNE.replace("%type_name%", type_name), is_finetune=True),
+                                    linearize(q_val, is_finetune=True),
+                                    linearize(parse_raw, is_finetune=True)
                                 ])
                                 # Pretrain (Linked to same unique entry)
                                 title_pt = PROMPT_GRAMMAR_PRETRAIN_TITLE.replace("%type_name%", type_name)
@@ -217,15 +217,19 @@ def process_corpus(args):
                             res_t = linearize(meaning_res)
                             if dedup.is_unique("meaning", type_name, q_val, res_t):
                                 ft_writers["meanings_finetune"].writerow([
-                                    PROMPT_MEANING_FINETUNE_TRANS.replace("%type_name%", type_name),
-                                    q_val,
-                                    res_t
+                                    linearize(PROMPT_MEANING_FINETUNE_TRANS.replace("%type_name%", type_name), is_finetune=True),
+                                    linearize(q_val, is_finetune=True),
+                                    linearize(res_t, is_finetune=True)
                                 ])
                     if u_word:
                         word_meaning_res = u_word if u_trans == "PN" else u_trans
                         res_t = linearize(word_meaning_res)
                         if dedup.is_unique("meaning_word", u_word, res_t):
-                            ft_writers["meanings_finetune"].writerow([PROMPT_MEANING_FINETUNE_WORD, u_word, res_t])
+                            ft_writers["meanings_finetune"].writerow([
+                                linearize(PROMPT_MEANING_FINETUNE_WORD, is_finetune=True), 
+                                linearize(u_word, is_finetune=True), 
+                                linearize(res_t, is_finetune=True)
+                            ])
 
                 # Lemma Finetune
                 if u_word:
@@ -234,9 +238,9 @@ def process_corpus(args):
                         if q_val:
                             if dedup.is_unique("lemma", type_name, q_val, res_w):
                                 ft_writers["lemma_finetune"].writerow([
-                                    PROMPT_LEMMA_FINETUNE.replace("%type_name%", type_name),
-                                    q_val,
-                                    res_w
+                                    linearize(PROMPT_LEMMA_FINETUNE.replace("%type_name%", type_name), is_finetune=True),
+                                    linearize(q_val, is_finetune=True),
+                                    linearize(res_w, is_finetune=True)
                                 ])
 
                 # Translation Finetune & Pretrain Buffer
@@ -249,8 +253,16 @@ def process_corpus(args):
                                 actual_part = q_val if part == "PN" else part
                                 cleaned_part = clean_translation(actual_part)
                                 if dedup.is_unique("trans", type_name, q_val, cleaned_part):
-                                    ft_writers["translations_finetune"].writerow([PROMPT_TRANS_AKK_TO_ENG.replace("%type_name%", type_name), q_val, cleaned_part])
-                                    ft_writers["translations_finetune"].writerow([PROMPT_TRANS_ENG_TO_AKK.replace("%type_name%", type_name), cleaned_part, q_val])
+                                    ft_writers["translations_finetune"].writerow([
+                                        linearize(PROMPT_TRANS_AKK_TO_ENG.replace("%type_name%", type_name), is_finetune=True), 
+                                        linearize(q_val, is_finetune=True), 
+                                        linearize(cleaned_part, is_finetune=True)
+                                    ])
+                                    ft_writers["translations_finetune"].writerow([
+                                        linearize(PROMPT_TRANS_ENG_TO_AKK.replace("%type_name%", type_name), is_finetune=True), 
+                                        linearize(cleaned_part, is_finetune=True), 
+                                        linearize(q_val, is_finetune=True)
+                                    ])
                                     trans_p_buffers[(type_name, "to_eng")].append((q_val, cleaned_part))
                                     trans_p_buffers[(type_name, "from_eng")].append((cleaned_part, q_val))
 
@@ -318,7 +330,11 @@ def process_corpus(args):
                 for src, dst, inst in transforms:
                     if src and dst and src != dst:
                         if dedup.is_unique("transform", inst, src, dst):
-                            ft_writers["transforms_finetune"].writerow([inst, src, dst])
+                            ft_writers["transforms_finetune"].writerow([
+                                linearize(inst, is_finetune=True),
+                                linearize(src, is_finetune=True),
+                                linearize(dst, is_finetune=True)
+                            ])
 
                 # Rosetta Buffer
                 # Handle PN for Rosetta Meaning

@@ -42,12 +42,20 @@ def process_train():
             # Akkadian -> English
             inst_akk_to_eng = PROMPT_TRANS_AKK_TO_ENG.replace("%type_name%", "akkadian epigraphic transliteration")
             if dedup.is_unique("trans_ft_akk2eng", inst_akk_to_eng, translit, translat):
-                writer_ft.writerow([inst_akk_to_eng, translit, translat])
+                writer_ft.writerow([
+                    linearize(inst_akk_to_eng, is_finetune=True), 
+                    linearize(translit, is_finetune=True), 
+                    linearize(translat, is_finetune=True)
+                ])
 
             # English -> Akkadian
             inst_eng_to_akk = PROMPT_TRANS_ENG_TO_AKK.replace("%type_name%", "akkadian epigraphic transliteration")
             if dedup.is_unique("trans_ft_eng2akk", inst_eng_to_akk, translat, translit):
-                writer_ft.writerow([inst_eng_to_akk, translat, translit])
+                writer_ft.writerow([
+                    linearize(inst_eng_to_akk, is_finetune=True), 
+                    linearize(translat, is_finetune=True), 
+                    linearize(translit, is_finetune=True)
+                ])
 
     f_trans_finetune.close()
     f_trans_pretrain.close()

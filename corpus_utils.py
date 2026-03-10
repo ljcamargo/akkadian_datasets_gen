@@ -60,14 +60,38 @@ def clean_translation(text):
 def replace_gaps(text):
     """Replace gaps (xxx, ..., …, [...]) with <gap> token."""
     if not text: return ""
-    # Replace dots and bracketed dots
-    text = re.sub(r'\[?\.\.\.\]?|\[?…\]?', '<gap>', text)
-    # Replace contiguous x's (bounded by word limits to prevent breaking words like "textile")
+    # Replace pre-existing known gap tokens
+    text = re.sub(r'\[?\.\.\.\]?|\[?…\]?|…', '<gap>', text)
     text = re.sub(r'\b[xX]+\b', '<gap>', text)
+    text = text.replace('[x]', '<gap>')
+    text = text.replace('(break)', '<gap>')
+    text = text.replace('(large break)', '<gap>')
+    text = re.sub(r'\([nN\d]+ broken lines?\)', '<gap>', text)
+    text = text.replace('<big_gap>', '<gap>')
+    
+    # Reduce multiple consecutive gaps and surrounding dashes/spaces to a single gap
+    text = re.sub(r'(?:[- ]*<gap>[- ]*)+', '<gap>', text)
     return text
 
-def linearize(text):
+def standardize_orthography(text):
     if not text: return ""
+    text = text.replace('(d)', '{d}').replace('(ki)', '{ki}').replace('(TÚG)', 'TÚG')
+    text = re.sub(r'(\d+\.\d{4})\d+', r'\1', text)
+    return text
+
+def clean_finetune_lints(text):
+    if not text: return ""
+    text = re.sub(r'[\[\]˹˺]', '', text)
+    text = text.replace('<gap>', '___GAP___')
+    text = re.sub(r'[<>]', '', text)
+    text = text.replace('___GAP___', '<gap>')
+    return text
+
+def linearize(text, is_finetune=False):
+    if not text: return ""
+    text = standardize_orthography(text)
+    if is_finetune:
+        text = clean_finetune_lints(text)
     return text.replace("\n", "\\n")
 
 def remove_nul(file_iter):

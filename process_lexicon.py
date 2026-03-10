@@ -63,13 +63,20 @@ def process_lexicon():
             
             # Finetune Lemma
             if dedup.is_unique("lemma_ft_epig", form, lexeme):
-                writer_lemma_ft.writerow([PROMPT_LEMMA_FINETUNE.replace("%type_name%", "akkadian epigraphic transliteration"), form, lexeme])
+                writer_lemma_ft.writerow([
+                    linearize(PROMPT_LEMMA_FINETUNE.replace("%type_name%", "akkadian epigraphic transliteration"), is_finetune=True), 
+                    linearize(form, is_finetune=True), 
+                    linearize(lexeme, is_finetune=True)
+                ])
             
             #if dedup.is_unique("lemma_ft_comp", comp, lexeme):
             #    writer_lemma_ft.writerow([PROMPT_LEMMA_FINETUNE.replace("%type_name%", "akkadian compact transliteration"), comp, lexeme])
                 
-            if norm and dedup.is_unique("lemma_ft_norm", norm, lexeme):
-                writer_lemma_ft.writerow([PROMPT_LEMMA_FINETUNE.replace("%type_name%", "akkadian normalized transliteration"), norm, lexeme])
+                writer_lemma_ft.writerow([
+                    linearize(PROMPT_LEMMA_FINETUNE.replace("%type_name%", "akkadian normalized transliteration"), is_finetune=True), 
+                    linearize(norm, is_finetune=True), 
+                    linearize(lexeme, is_finetune=True)
+                ])
             
             # Rosetta
             if dedup.is_unique("rosetta", form, norm, lexeme, w_type):

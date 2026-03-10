@@ -218,38 +218,38 @@ def generate_dictionary_csvs(input_jsonl, output_dir):
                 if definition:
                     if dedup.is_unique("meaning_ft", word, definition):
                         ft_writers["meaning_finetune"].writerow([
-                            linearize(PROMPT_MEANING_FINETUNE_WORD),
-                            linearize(word),
-                            linearize(definition)
+                            linearize(PROMPT_MEANING_FINETUNE_WORD, is_finetune=True),
+                            linearize(word, is_finetune=True),
+                            linearize(definition, is_finetune=True)
                         ])
                         
                     cleaned_def = clean_translation(definition)
                     if dedup.is_unique("trans_ft", word, cleaned_def):
                         ft_writers["translations_finetune"].writerow([
-                            linearize(PROMPT_TRANS_AKK_TO_ENG.replace("%type_name%", type_name)),
-                            linearize(word),
-                            linearize(cleaned_def)
+                            linearize(PROMPT_TRANS_AKK_TO_ENG.replace("%type_name%", type_name), is_finetune=True),
+                            linearize(word, is_finetune=True),
+                            linearize(cleaned_def, is_finetune=True)
                         ])
                         ft_writers["translations_finetune"].writerow([
-                            linearize(PROMPT_TRANS_ENG_TO_AKK_WORD),
-                            linearize(cleaned_def),
-                            linearize(word)
+                            linearize(PROMPT_TRANS_ENG_TO_AKK_WORD, is_finetune=True),
+                            linearize(cleaned_def, is_finetune=True),
+                            linearize(word, is_finetune=True)
                         ])
 
                 if joined_lemmas:
                     if dedup.is_unique("lemma_ft", word, joined_lemmas):
                         ft_writers["lemma_finetune"].writerow([
-                            linearize(PROMPT_LEMMA_FINETUNE.replace("%type_name%", type_name)),
-                            linearize(word),
-                            linearize(joined_lemmas)
+                            linearize(PROMPT_LEMMA_FINETUNE.replace("%type_name%", type_name), is_finetune=True),
+                            linearize(word, is_finetune=True),
+                            linearize(joined_lemmas, is_finetune=True)
                         ])
 
                 if joined_grammar:
                     if dedup.is_unique("grammar_ft", word, joined_grammar):
                         ft_writers["grammar_finetune"].writerow([
-                            linearize(PROMPT_GRAMMAR_FINETUNE.replace("%type_name%", type_name)),
-                            linearize(word),
-                            linearize(joined_grammar)
+                            linearize(PROMPT_GRAMMAR_FINETUNE.replace("%type_name%", type_name), is_finetune=True),
+                            linearize(word, is_finetune=True),
+                            linearize(joined_grammar, is_finetune=True)
                         ])
                         
                 if definition and dedup.is_unique("dict_pt", word, definition, joined_lemmas, joined_grammar):

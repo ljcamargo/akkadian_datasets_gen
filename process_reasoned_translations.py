@@ -4,7 +4,7 @@ import os
 import json
 import re
 import yaml
-from corpus_utils import CSV_DIALECT_FINETUNE, replace_gaps
+from corpus_utils import CSV_DIALECT_FINETUNE, replace_gaps, linearize
 
 print("Loading dictionaries...")
 with open("workspace/outputs/lexicon/lemma_derivatives.json", "r", encoding="utf-8") as f:
@@ -181,8 +181,12 @@ def process_reasoned():
             reasoning_str = yaml.dump(reasoning_list, default_flow_style=False, sort_keys=False, allow_unicode=True)
             # escape all newlines in the translation to avoid CSV issues
             result_str = f"REASONING:\n{reasoning_str.strip()}\nTRANSLATION:\n{translat}"
-            result_str = result_str.replace("\n", "\\n")
-            writer.writerow([prompt_inst, translit, result_str])
+            # line formatting logic handled internally inside corpus_utils
+            writer.writerow([
+                linearize(prompt_inst, is_finetune=True), 
+                linearize(translit, is_finetune=True), 
+                linearize(result_str, is_finetune=True)
+            ])
             count += 1
             if count % 1000 == 0:
                 print(f"Processed {count} entries...")
