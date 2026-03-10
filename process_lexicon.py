@@ -59,21 +59,21 @@ def process_lexicon():
                 continue
                 
             derivatives_map[lexeme].add((norm, form))
-            comp = compact_epig(form)
+            #comp = compact_epig(form)
             
             # Finetune Lemma
             if dedup.is_unique("lemma_ft_epig", form, lexeme):
-                writer_lemma_ft.writerow([PROMPT_LEMMA_FINETUNE.replace("%type_name%", "epigraphic transliteration"), form, lexeme])
+                writer_lemma_ft.writerow([PROMPT_LEMMA_FINETUNE.replace("%type_name%", "akkadian epigraphic transliteration"), form, lexeme])
             
-            if dedup.is_unique("lemma_ft_comp", comp, lexeme):
-                writer_lemma_ft.writerow([PROMPT_LEMMA_FINETUNE.replace("%type_name%", "compact epigraphic transliteration"), comp, lexeme])
+            #if dedup.is_unique("lemma_ft_comp", comp, lexeme):
+            #    writer_lemma_ft.writerow([PROMPT_LEMMA_FINETUNE.replace("%type_name%", "akkadian compact transliteration"), comp, lexeme])
                 
             if norm and dedup.is_unique("lemma_ft_norm", norm, lexeme):
-                writer_lemma_ft.writerow([PROMPT_LEMMA_FINETUNE.replace("%type_name%", "akkadian orthography"), norm, lexeme])
+                writer_lemma_ft.writerow([PROMPT_LEMMA_FINETUNE.replace("%type_name%", "akkadian normalized transliteration"), norm, lexeme])
             
             # Rosetta
-            if dedup.is_unique("rosetta", form, comp, norm, lexeme, w_type):
-                current_rosetta_rows.append([form, comp, norm, lexeme, w_type])
+            if dedup.is_unique("rosetta", form, norm, lexeme, w_type):
+                current_rosetta_rows.append([form, norm, lexeme, w_type])
                 if len(current_rosetta_rows) >= 20:
                     flush_rosetta()
 

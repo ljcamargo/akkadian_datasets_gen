@@ -7,7 +7,7 @@ INPUT_JSONL = "workspace/outputs/dictionary/dictionary_parsed.jsonl"
 OUTPUT_DIR = "workspace/outputs/dictionary"
 
 def get_dictionary_rosetta_header():
-    return "| Akkadian Word | Lemma | Definition | Grammar |\n|---|---|---|---|\n"
+    return "| Akkadian Transliteration | Lemma | Definition | Grammar |\n|---|---|---|---|\n"
 
 def main():
     if not os.path.exists(INPUT_JSONL):

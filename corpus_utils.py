@@ -17,36 +17,36 @@ CSV_DIALECT_PRETRAIN = {
 
 # --- PROMPT TEMPLATES ---
 HEADER_TEMPLATE = "# Cuneiform Tablet %text_id%\n## %title%\n\n"
-TITLE_EPIGRAPHIC = "Epigraphic Transliteration"
-TITLE_COMPACT = "Compact Epigraphic Transliteration"
-TITLE_SPELLING = "Akkadian Orthography"
+TITLE_EPIGRAPHIC = "Akkadian Epigraphic Transliteration"
+TITLE_COMPACT = " Akkadian Compact Transliteration"
+TITLE_SPELLING = "Akkadian Normalized Transliteration"
 TITLE_GRAMMAR_TEMPLATE = "Grammar Analysis (%base%)"
 
-PROMPT_TEXT_PRETRAIN = "Write the %type_name% form of the Akkadian cuneiform tablet %pub_info%"
-PROMPT_GRAMMAR_FINETUNE = "Provide the morphological annotation of this Akkadian cuneiform %type_name% form"
-PROMPT_GRAMMAR_PRETRAIN_TITLE = "# Morphological Annotation of Akkadian Cuneiform (%type_name%) form"
-PROMPT_MEANING_FINETUNE_TRANS = "Provide the lexical definition of this Akkadian cuneiform %type_name% form"
-PROMPT_MEANING_FINETUNE_WORD = "Provide the lexical definition of this Akkadian form"
-PROMPT_LEMMA_FINETUNE = "Identify the Akkadian lemma of this %type_name% form"
+PROMPT_TEXT_PRETRAIN = "%type_name% of the cuneiform tablet %pub_info%"
+PROMPT_GRAMMAR_FINETUNE = "Provide the grammar annotation of this %type_name%"
+PROMPT_GRAMMAR_PRETRAIN_TITLE = "# Grammar Annotation of %type_name%"
+PROMPT_MEANING_FINETUNE_TRANS = "Provide the lexical definition of this %type_name%"
+PROMPT_MEANING_FINETUNE_WORD = "Provide the lexical definition of this Akkadian Normalized Transliteration"
+PROMPT_LEMMA_FINETUNE = "Identify the lemma of this %type_name%"
 PROMPT_LEMMA_PRETRAIN_CONTENT = "# Lexeme: %lexeme%\nDerivates: %derivatives%"
-PROMPT_TRANS_AKK_TO_ENG = "Translate this Akkadian cuneiform %type_name% into English"
-PROMPT_TRANS_ENG_TO_AKK = "Translate this English text into Akkadian cuneiform (%type_name%)"
-PROMPT_TRANS_ENG_TO_AKK_WORD = "Translate this English lexical definition into an Akkadian form"
-PROMPT_TRANSFORM_EPIG_TO_SPELL = "Convert this text from Epigraphic Transliteration to Akkadian Orthography"
-PROMPT_TRANSFORM_SPELL_TO_EPIG = "Convert this text from Akkadian Orthography to Epigraphic Transliteration"
-PROMPT_TRANSFORM_COMPACT_TO_SPELL = "Convert this text from Compact Epigraphic Transliteration to Akkadian Orthography"
-PROMPT_TRANSFORM_SPELL_TO_COMPACT = "Convert this text from Akkadian Orthography to Compact Epigraphic Transliteration"
+PROMPT_TRANS_AKK_TO_ENG = "Translate from %type_name% to english"
+PROMPT_TRANS_ENG_TO_AKK = "Translate from english to %type_name%"
+PROMPT_TRANS_ENG_TO_AKK_WORD = "Translate this English lexical definition into an Akkadian Normalized Transliteration"
+PROMPT_TRANSFORM_EPIG_TO_SPELL = "Convert this Akkadian Transliteration from Epigraphic to Normalized"
+PROMPT_TRANSFORM_SPELL_TO_EPIG = "Convert this Akkadian Transliteration from Normalized to Epigraphic"
+PROMPT_TRANSFORM_COMPACT_TO_SPELL = "Convert this Akkadian Transliteration from Compact to Normalized"
+PROMPT_TRANSFORM_SPELL_TO_COMPACT = "Convert this Akkadian Transliteration from Normalized to Compact"
 
-TITLE_TRANS_PT_TO_ENG = "# Akkadian Cuneiform (%type_name%) Translation to English"
-TITLE_TRANS_PT_FROM_ENG = "# English to Akkadian Cuneiform (%type_name%) Translation"
-TITLE_ROSETTA_PT = "# Akkadian Cuneiform Alignment Table"
+TITLE_TRANS_PT_TO_ENG = "# Akkadian %type_name% Translation to English"
+TITLE_TRANS_PT_FROM_ENG = "# English to Akkadian %type_name% Translation"
+TITLE_ROSETTA_PT = "# Akkadian Transliteration Alignment"
 
 PROMPT_GRAMMAR_PRETRAIN_CONTENT = "%title%\n%word%\n%grammar%"
 PROMPT_GRAMMAR_ITEM_PREFIX = "- %variable%: %value%"
 
 TRANS_TABLE_TEMPLATE = "| %h1% | %h2% |\n|---|---|\n"
-ROSETTA_TABLE_HEADER = "| Epigraphic Transliteration | Compact Epigraphic Transliteration | Akkadian Orthography | Lemma | Definition |\n|---|---|---|---|---|\n"
-ROSETTA_TABLE_HEADER_LEXICON = "| Epigraphic Transliteration | Compact Epigraphic Transliteration | Akkadian Orthography | Lemma | Type |\n|---|---|---|---|---|\n"
+ROSETTA_TABLE_HEADER = "| Epigraphic | Normalized | Lemma | Definition |\n|---|---|---|---|---|\n"
+ROSETTA_TABLE_HEADER_LEXICON = "| Epigraphic | Normalized | Lemma | Type |\n|---|---|---|---|---|\n"
 
 
 # --- HELPERS ---
@@ -57,12 +57,12 @@ def clean_translation(text):
     return " ".join(text.replace('(', '').replace(')', '').split())
 
 def replace_gaps(text):
-    """Replace gaps (xxx, ..., …, [...]) with <|GAP|> token."""
+    """Replace gaps (xxx, ..., …, [...]) with <gap> token."""
     if not text: return ""
     # Replace dots and bracketed dots
-    text = re.sub(r'\[?\.\.\.\]?|\[?…\]?', '<|GAP|>', text)
+    text = re.sub(r'\[?\.\.\.\]?|\[?…\]?', '<gap>', text)
     # Replace contiguous x's (bounded by word limits to prevent breaking words like "textile")
-    text = re.sub(r'\b[xX]+\b', '<|GAP|>', text)
+    text = re.sub(r'\b[xX]+\b', '<gap>', text)
     return text
 
 def linearize(text):

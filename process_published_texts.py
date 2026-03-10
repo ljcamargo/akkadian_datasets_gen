@@ -145,9 +145,9 @@ def process_corpus(args):
             # --- 1. TEXT PRETRAIN ---
             # Uniqueness: Full text content per mode
             variants_md = [
-                ("epigraphic transliteration", format_epigraphy(units, False)),
-                ("compact epigraphic transliteration", format_epigraphy(units, True)),
-                ("akkadian orthography", format_spelling(units))
+                ("akkadian epigraphic transliteration", format_epigraphy(units, False)),
+                #("compact epigraphic transliteration", format_epigraphy(units, True)),
+                #("akkadian orthography", format_spelling(units))
             ]
             for type_name, content in variants_md:
                 if content:
@@ -186,9 +186,9 @@ def process_corpus(args):
                 q_f = " ".join(g_form)
                 
                 word_variants = [
-                    ("epigraphic transliteration", q_e),
-                    ("compact epigraphic transliteration", q_c),
-                    ("akkadian orthography", q_f)
+                    ("akkadian epigraphic transliteration", q_e),
+                    #("compact epigraphic transliteration", q_c),
+                    #("akkadian orthography", q_f)
                 ]
 
                 # Grammar (Finetune + Pretrain)
@@ -312,8 +312,8 @@ def process_corpus(args):
                 transforms = [
                     (q_e, q_f, PROMPT_TRANSFORM_EPIG_TO_SPELL),
                     (q_f, q_e, PROMPT_TRANSFORM_SPELL_TO_EPIG),
-                    (q_c, q_f, PROMPT_TRANSFORM_COMPACT_TO_SPELL),
-                    (q_f, q_c, PROMPT_TRANSFORM_SPELL_TO_COMPACT)
+                    #(q_c, q_f, PROMPT_TRANSFORM_COMPACT_TO_SPELL),
+                    #(q_f, q_c, PROMPT_TRANSFORM_SPELL_TO_COMPACT)
                 ]
                 for src, dst, inst in transforms:
                     if src and dst and src != dst:
@@ -326,7 +326,7 @@ def process_corpus(args):
                 if u_trans == "PN":
                     rosetta_trans = u_word if u_word else q_f
                 
-                r_tuple = (q_e or "", q_c or "", q_f or "", u_word or "", rosetta_trans or "")
+                r_tuple = (q_e or "", q_f or "", u_word or "", rosetta_trans or "")
                 # Only add if unique
                 if dedup.is_unique("rosetta", *r_tuple):
                     rosetta_buffer.append(r_tuple)
@@ -357,7 +357,7 @@ def process_corpus(args):
                 rosetta_buffer = rosetta_buffer[ROSETTA_CHUNK_SIZE:]
                 title = TITLE_ROSETTA_PT
                 table = f"{title}\n\n" + ROSETTA_TABLE_HEADER
-                for e, c, f, w, m in chunk: table += f"| {e} | {c} | {f} | {w} | {m} |\n"
+                for e, f, w, m in chunk: table += f"| {e} | {f} | {w} | {m} |\n"
                 pt_writers["rosetta_pretrain"].writerow([linearize(table)])
 
     # Delete dedup db

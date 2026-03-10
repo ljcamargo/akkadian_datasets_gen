@@ -99,7 +99,7 @@ def direct_lookup(term, is_first=False, is_last=False):
 
 def resolve_composite(term, is_first=False, is_last=False):
     cand, res = direct_lookup(term, is_first, is_last)
-    print(f"Resolving '{term}': direct lookup candidate '{cand}' with result?: {res is not None}")
+    #print(f"Resolving '{term}': direct lookup candidate '{cand}' with result?: {res is not None}")
     if res:
         return [(cand, res)]
         
@@ -159,11 +159,11 @@ def process_reasoned():
                 
             translit = replace_gaps(translit)
             translat = replace_gaps(translat)
-            print(">>>>> Processing entry with transliteration:", translit)
+            #print(">>>>> Processing entry with transliteration:", translit)
             reasoning_list = []
             words = translit.split()
             for w in words:
-                print(f">>>>> >>>>> WORD: {w}")
+                #print(f">>>>> >>>>> WORD: {w}")
                 resolutions = resolve_composite(w, is_first=True, is_last=True)
                 if len(resolutions) == 1:
                     cand, r = resolutions[0]
@@ -179,8 +179,9 @@ def process_reasoned():
                     reasoning_list.append({"Word": w, "Parts": parts_list})
             
             reasoning_str = yaml.dump(reasoning_list, default_flow_style=False, sort_keys=False, allow_unicode=True)
+            # escape all newlines in the translation to avoid CSV issues
             result_str = f"REASONING:\n{reasoning_str.strip()}\nTRANSLATION:\n{translat}"
-            
+            result_str = result_str.replace("\n", "\\n")
             writer.writerow([prompt_inst, translit, result_str])
             count += 1
             if count % 1000 == 0:
