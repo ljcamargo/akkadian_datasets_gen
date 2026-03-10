@@ -60,13 +60,15 @@ def main():
     client = genai.Client()
 
     records = []
-    with open(INPUT_JSONL, 'r', encoding='utf-8') as f:
+    input_file = OUTPUT_JSONL if os.path.exists(OUTPUT_JSONL) else INPUT_JSONL
+    print(f"Reading records from {input_file}...")
+    with open(input_file, 'r', encoding='utf-8') as f:
         for line in f:
             if line.strip():
                 records.append(json.loads(line))
 
     special_indices = [i for i, r in enumerate(records) if r.get('special') is True]
-    print(f"Found {len(special_indices)} special records to process.")
+    print(f"Found {len(special_indices)} special records remaining to process in this file.")
 
     for start_idx in range(0, len(special_indices), BATCH_SIZE):
         batch_indices = special_indices[start_idx:start_idx + BATCH_SIZE]
@@ -82,17 +84,19 @@ def main():
                 records[idx]['word'] = res.get('word', records[idx]['word'])
                 records[idx]['meanings'] = res.get('meanings', [])
                 records[idx]['special'] = False # Marked as resolved
+                
+            # Save progress incrementally after each successful batch
+            with open(OUTPUT_JSONL, 'w', encoding='utf-8') as f:
+                for r in records:
+                    f.write(json.dumps(r, ensure_ascii=False) + '\n')
+            print(f"Batch saved to {OUTPUT_JSONL}")
         else:
             print(f"Warning: Batch returned {len(results) if isinstance(results, list) else 0} results, expected {len(batch_records)}.")
         
         # Rate limiting delay
-        time.sleep(2)
-
-    with open(OUTPUT_JSONL, 'w', encoding='utf-8') as f:
-        for r in records:
-            f.write(json.dumps(r, ensure_ascii=False) + '\n')
+        #time.sleep(2)
             
-    print(f"LLM processing complete. Updated records saved to {OUTPUT_JSONL}")
+    print(f"LLM processing complete. Final records saved to {OUTPUT_JSONL}")
     print("You can now rename this file to dictionary_parsed.jsonl and re-run generate_dictionary_csvs.py")
 
 if __name__ == '__main__':
