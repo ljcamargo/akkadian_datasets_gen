@@ -69,6 +69,40 @@ def linearize(text):
     if not text: return ""
     return text.replace("\n", "\\n")
 
+def remove_nul(file_iter):
+    for line in file_iter:
+        yield line.replace('\0', '')
+
+def get_akkadian_context_lines(page_text):
+    separator = '\\n' if '\\n' in page_text and '\n' not in page_text else '\n'
+    lines = page_text.split(separator)
+    #print(f">>>>>>>>>>>>>>> Total lines: {len(lines)}")
+    pattern = re.compile(r'(?:[\w\.]+[-])+[\w\.]+', re.UNICODE) 
+    
+    akk_line_indices = []
+    for i, line in enumerate(lines):
+        matches = pattern.findall(line)
+        if len(matches) >= 2:
+            akk_line_indices.append(i)
+            
+    if not akk_line_indices:
+        print(">>>>>>>>>>>>>>> No Akkadian text matched")
+        return page_text
+        
+    include_indices = set()
+    for idx in akk_line_indices:
+        for j in range(max(0, idx - 2), min(len(lines), idx + 3)):
+            include_indices.add(j)
+            
+    sorted_indices = sorted(list(include_indices))
+    print(f">>>>>>>>>>>>>>> Akkadian text matched {len(sorted_indices)} lines from {len(lines)} lines")
+    
+    result_lines = []
+    for idx in sorted_indices:
+        result_lines.append(lines[idx])
+        
+    return '\n'.join(result_lines)
+
 def get_markdown_title(type_name, is_grammar=False):
     base = ""
     if "compact" in type_name: base = TITLE_COMPACT

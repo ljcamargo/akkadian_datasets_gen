@@ -1,14 +1,10 @@
 import csv
 import os
-from corpus_utils import CSV_DIALECT_PRETRAIN, linearize
+from corpus_utils import CSV_DIALECT_PRETRAIN, linearize, get_akkadian_context_lines, remove_nul
 
 input_file = "workspace/publications.csv"
 output_dir = "workspace/outputs/publications"
 os.makedirs(output_dir, exist_ok=True)
-
-def remove_nul(file_iter):
-    for line in file_iter:
-        yield line.replace('\0', '')
 
 def process_publications():
     with open(input_file, "r", encoding="utf-8-sig") as f:
@@ -26,7 +22,9 @@ def process_publications():
                 if not pdf_name and not page_text:
                     continue
                 
-                content = f"# {pdf_name}\n## Page: {page}\n{page_text}"
+                filtered_page_text = get_akkadian_context_lines(page_text)
+                
+                content = f"# {pdf_name}\n## Page: {page}\n{filtered_page_text}"
                 writer.writerow([linearize(content)])
                 
     print("Publications pretrain processing complete.")
