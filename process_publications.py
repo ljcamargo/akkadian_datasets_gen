@@ -42,7 +42,7 @@ def process_publications():
                 filt_lines = len(filtered_page_text.split('\n'))
                 total_filtered_lines += filt_lines
                 
-                content = f"# {pdf_name}\n## Page: {page}\n{filtered_page_text}"
+                content = f"{pdf_name} (p.{page})\n{filtered_page_text}"
                 writer.writerow([linearize(content)])
                 
     reduction_pct = (1.0 - (total_filtered_lines / total_original_lines)) * 100 if total_original_lines > 0 else 0

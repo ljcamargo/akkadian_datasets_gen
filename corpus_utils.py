@@ -16,19 +16,18 @@ CSV_DIALECT_PRETRAIN = {
 }
 
 # --- PROMPT TEMPLATES ---
-HEADER_TEMPLATE = "# Cuneiform Tablet %text_id%\n## %title%\n\n"
+HEADER_TEMPLATE = "Cuneiform Tablet %text_id%\n%title%\n\n"
 TITLE_EPIGRAPHIC = "Akkadian Epigraphic Transliteration"
 TITLE_COMPACT = " Akkadian Compact Transliteration"
 TITLE_SPELLING = "Akkadian Normalized Transliteration"
-TITLE_GRAMMAR_TEMPLATE = "Grammar Analysis (%base%)"
 
 PROMPT_TEXT_PRETRAIN = "%type_name% of the cuneiform tablet %pub_info%"
 PROMPT_GRAMMAR_FINETUNE = "Provide the grammar annotation of this %type_name%"
-PROMPT_GRAMMAR_PRETRAIN_TITLE = "# Grammar Annotation of %type_name%"
+PROMPT_GRAMMAR_PRETRAIN_TITLE = "Grammar annotation of %type_name%"
 PROMPT_MEANING_FINETUNE_TRANS = "Provide the lexical definition of this %type_name%"
 PROMPT_MEANING_FINETUNE_WORD = "Provide the lexical definition of this akkadian normalized transliteration"
 PROMPT_LEMMA_FINETUNE = "Identify the lemma of this %type_name%"
-PROMPT_LEMMA_PRETRAIN_CONTENT = "# Lexeme: %lexeme%\nDerivates: %derivatives%"
+PROMPT_LEMMA_PRETRAIN_CONTENT = "Lexeme: %lexeme%\Forms: %derivatives%"
 PROMPT_TRANS_AKK_TO_ENG = "Translate from %type_name% to english"
 PROMPT_TRANS_ENG_TO_AKK = "Translate from english to %type_name%"
 PROMPT_TRANSFORM_EPIG_TO_SPELL = "Convert this akkadian transliteration from epigraphic to normalized"
@@ -36,9 +35,9 @@ PROMPT_TRANSFORM_SPELL_TO_EPIG = "Convert this akkadian transliteration from nor
 PROMPT_TRANSFORM_COMPACT_TO_SPELL = "Convert this akkadian transliteration from compact to normalized"
 PROMPT_TRANSFORM_SPELL_TO_COMPACT = "Convert this akkadian transliteration from normalized to compact"
 
-TITLE_TRANS_PT_TO_ENG = "# Akkadian %type_name% Translation to English"
-TITLE_TRANS_PT_FROM_ENG = "# English to Akkadian %type_name% Translation"
-TITLE_ROSETTA_PT = "# Akkadian Transliteration Alignment"
+TITLE_TRANS_PT_TO_ENG = "%type_name% to english translation"
+TITLE_TRANS_PT_FROM_ENG = "english to %type_name% translation"
+TITLE_ROSETTA_PT = "Akkadian Transliteration Alignment"
 ROSETTA_HEADER_DICTIONARY = "| Akkadian Transliteration | Lemma | Definition | Grammar |\n|---|---|---|---|\n"
 
 PROMPT_GRAMMAR_PRETRAIN_CONTENT = "%title%\n%word%\n%grammar%"
@@ -136,16 +135,6 @@ def get_akkadian_context_lines(page_text):
         
     return '\n'.join(result_lines)
 
-def get_markdown_title(type_name, is_grammar=False):
-    base = ""
-    if "compact" in type_name: base = TITLE_COMPACT
-    elif "spelling" in type_name: base = TITLE_SPELLING
-    else: base = TITLE_EPIGRAPHIC
-    
-    if is_grammar:
-        return TITLE_GRAMMAR_TEMPLATE.replace("%base%", base)
-    return base
-
 def get_text_id(text_meta):
     """Returns a consistent row identifier: name > publicationPrefix/Number > uuid."""
     name = text_meta.get("name")
@@ -159,9 +148,12 @@ def get_text_id(text_meta):
         
     return text_meta.get("uuid", "N/A")
 
-def get_markdown_header(text_meta, type_name, is_grammar=False):
+def get_markdown_header(text_meta, type_name):
     text_id = get_text_id(text_meta)
-    title = get_markdown_title(type_name, is_grammar)
+    title = ""
+    if "compact" in type_name: title = TITLE_COMPACT
+    elif "spelling" in type_name: title = TITLE_SPELLING
+    else: title = TITLE_EPIGRAPHIC
     return HEADER_TEMPLATE.replace("%text_id%", text_id).replace("%title%", title)
 
 def get_grammar_result(group):

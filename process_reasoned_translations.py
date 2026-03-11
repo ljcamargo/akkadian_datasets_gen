@@ -180,7 +180,7 @@ def process_reasoned():
             
             reasoning_str = yaml.dump(reasoning_list, default_flow_style=False, sort_keys=False, allow_unicode=True)
             # escape all newlines in the translation to avoid CSV issues
-            result_str = f"REASONING:\n{reasoning_str.strip()}\nTRANSLATION:\n{translat}"
+            result_str = f"TRANSLATION:\n{translat}\nREASONING:\n{reasoning_str.strip()}"
             # line formatting logic handled internally inside corpus_utils
             writer.writerow([
                 linearize(prompt_inst, is_finetune=True), 

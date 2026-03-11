@@ -253,7 +253,7 @@ def generate_dictionary_csvs(input_jsonl, output_dir):
                         ])
                         
                 if definition and dedup.is_unique("dict_pt", word, definition, joined_lemmas, joined_grammar):
-                    content = f"# Akkadian Transliteration Dictionary Entry\nWord: {word}\n"
+                    content = f"Akkadian Transliteration Dictionary Entry\nWord: {word}\n"
                     if joined_lemmas: content += f"Lemma: {joined_lemmas}\n"
                     content += f"Definition: {definition}\n"
                     if joined_grammar: content += f"Grammar: {joined_grammar}\n"

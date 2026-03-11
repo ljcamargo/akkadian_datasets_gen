@@ -151,7 +151,7 @@ def process_corpus(args):
             ]
             for type_name, content in variants_md:
                 if content:
-                    md_full = get_markdown_header(text_meta, type_name) + content
+                    md_full = content # get_markdown_header(text_meta, type_name) + content
                     if dedup.is_unique("texts_pretrain", type_name, content):
                         pt_writers["texts_pretrain"].writerow([linearize(md_full)])
 
