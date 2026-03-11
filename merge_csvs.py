@@ -5,16 +5,20 @@ from corpus_utils import CSV_DIALECT_FINETUNE, CSV_DIALECT_PRETRAIN
 
 
 PRETRAIN_FILES = [
-    "workspace/outputs/train/translations_pretrain.csv",
-    "workspace/outputs/dictionary/dictionary_pretrain.csv",
-    "workspace/outputs/dictionary/rosetta_pretrain.csv",
-    "workspace/outputs/lexicon/lemma_pretrain.csv",
-    "workspace/outputs/lexicon/rosetta_pretrain.csv",
     "workspace/outputs/published_texts/grammar_pretrain.csv",
     "workspace/outputs/published_texts/translations_pretrain.csv",
-    "workspace/outputs/published_texts/rosetta_pretrain.csv",
     "workspace/outputs/published_texts/texts_pretrain.csv",
+    "workspace/outputs/published_texts/rosetta_pretrain.csv",
+
+    "workspace/outputs/dictionary/dictionary_pretrain.csv",
+    "workspace/outputs/dictionary/rosetta_pretrain.csv",
+
+    "workspace/outputs/lexicon/lemma_pretrain.csv",
+    "workspace/outputs/lexicon/rosetta_pretrain.csv",
+
     "workspace/outputs/publications/publications_pretrain.csv",
+
+    "workspace/outputs/train/translations_pretrain.csv",
 ]
 
 FINETUNE_FILES = [
@@ -23,10 +27,12 @@ FINETUNE_FILES = [
         "workspace/outputs/dictionary/lemma_finetune.csv",
         "workspace/outputs/dictionary/grammar_finetune.csv",
         "workspace/outputs/dictionary/meaning_finetune.csv",
+
+        "workspace/outputs/published_texts/lemma_finetune.csv",
         "workspace/outputs/published_texts/grammar_finetune.csv",
         "workspace/outputs/published_texts/meanings_finetune.csv",
-        "workspace/outputs/published_texts/lemma_finetune.csv",
-        "workspace/outputs/published_texts/transforms_finetune.csv",
+        #"workspace/outputs/published_texts/transforms_finetune.csv",
+
         "workspace/outputs/lexicon/lemma_finetune.csv",
     ],
     # MEDIUM

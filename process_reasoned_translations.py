@@ -4,7 +4,7 @@ import os
 import json
 import re
 import yaml
-from corpus_utils import CSV_DIALECT_FINETUNE, replace_gaps, linearize
+from corpus_utils import CSV_DIALECT_FINETUNE,PROMPT_TRANS_AKK_TO_ENG, TYPE_EPIGRAPHIC, replace_gaps, linearize
 
 print("Loading dictionaries...")
 with open("workspace/outputs/lexicon/lemma_derivatives.json", "r", encoding="utf-8") as f:
@@ -32,27 +32,30 @@ print("Dictionaries loaded.")
 def format_entry(lemma, entry):
     meanings = []
     grammars = []
-    for m in entry.get("meanings", []):
+    for m in entry.get("meanings", [])[:2]: # limit to 2 meanings to save tokens
         if m.get("definition") and m.get("definition") not in meanings:
             meanings.append(m.get("definition"))
-        for g in m.get("grammar", []):
+        for g in m.get("grammar", [])[:2]: # limit to 2 grammar annotations to save tokens
             if g.get("parse"):
                 if g.get("parse") not in grammars:
                     grammars.append(g.get("parse"))
             else:
-                if g not in grammars:
-                    g_copy = g.copy()
-                    del g_copy["parse"]
-                    grammars.append(g_copy)
+                parse = ", ".join(str(v) for k, v in g.items() if k not in ("classification", "parse",))
+                if "clitic" in g:
+                    parse = ", ".join([parse, "clitic", g['clitic']] if parse else ["clitic", g['clitic']])
+                if parse not in grammars:
+                    grammars.append(parse)
+                
     
     if not meanings and entry.get("original_definition"):
         meanings.append(entry.get("original_definition"))
-        
-    res = {"Lemma": lemma}
+
+    
+    res = {"Lemma": lemma} #if lemma != entry.get("Word", "") else {}
     if meanings:
-        res["Meanings"] = '; '.join(meanings)
+        res["Meanings"] = '; '.join(meanings[:3]) # limit to 3 meanings to save tokens
     if grammars:
-        res["Grammar"] = grammars
+        res["Grammar"] = ", ".join({part for s in grammars for part in s.split(", ")})
     return res
 
 def fetch_dict_info(cand):
@@ -76,8 +79,8 @@ def direct_lookup(term, is_first=False, is_last=False):
     if re.match(r'^[0-9\./]+$', term):
         return term, {"Type": "number"}
     
-    if term == "<|GAP|>" or "<|GAP|>" in term:
-        return term, {"Type": "gap/missing token"}
+    if term == "<gap>" or "<gap>" in term:
+        return term, {"Type": "gap token"}
         
     candidates = [term]
     if is_last:
@@ -132,7 +135,7 @@ def resolve_composite(term, is_first=False, is_last=False):
             else:
                 return left_res2 + right_res2
                 
-    return [(term, {"Type": "Unknown"})]
+    return []
 
 def process_reasoned():
     input_file = "workspace/train.csv"
@@ -143,8 +146,8 @@ def process_reasoned():
     f_out = open(out_path, "w", encoding="utf-8")
     writer = csv.writer(f_out, **CSV_DIALECT_FINETUNE)
     writer.writerow(["instruct", "query", "result"])
-
-    prompt_inst = "Translate this Akkadian cuneiform epigraphic transliteration into English with reasoned explanation"
+    preprompt = PROMPT_TRANS_AKK_TO_ENG.replace("%type_name%", TYPE_EPIGRAPHIC)
+    prompt_inst = f"{preprompt} with reasoned explanation"
 
     print("Processing train.csv dataset to generate reasoned translations...")
     with open(input_file, "r", encoding="utf-8-sig") as f:
@@ -159,21 +162,23 @@ def process_reasoned():
                 
             translit = replace_gaps(translit)
             translat = replace_gaps(translat)
-            #print(">>>>> Processing entry with transliteration:", translit)
             reasoning_list = []
             words = translit.split()
             for w in words:
-                #print(f">>>>> >>>>> WORD: {w}")
                 resolutions = resolve_composite(w, is_first=True, is_last=True)
                 if len(resolutions) == 1:
                     cand, r = resolutions[0]
                     item = {"Word": w}
+                    if item["Word"] == item.get("Lemma", ""):
+                        del item["Lemma"]  # avoid redundancy if lemma is same as word
                     item.update(r)
                     reasoning_list.append(item)
                 else:
                     parts_list = []
                     for cand, r in resolutions:
                         part_item = {"Word": cand}
+                        if part_item["Word"] == part_item.get("Lemma", ""):
+                            del part_item["Lemma"]  # avoid redundancy if lemma is same as word
                         part_item.update(r)
                         parts_list.append(part_item)
                     reasoning_list.append({"Word": w, "Parts": parts_list})

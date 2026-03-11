@@ -17,31 +17,35 @@ CSV_DIALECT_PRETRAIN = {
 
 # --- PROMPT TEMPLATES ---
 HEADER_TEMPLATE = "Cuneiform Tablet %text_id%\n%title%\n\n"
-TITLE_EPIGRAPHIC = "Akkadian Epigraphic Transliteration"
+TITLE_EPIGRAPHIC = "Akkadian Transliteration"
 TITLE_COMPACT = " Akkadian Compact Transliteration"
 TITLE_SPELLING = "Akkadian Normalized Transliteration"
 
+TYPE_EPIGRAPHIC = "akkadian transliteration"
+TYPE_COMPACT = "akkadian compact transliteration"
+TYPE_NORMALIZED = "akkadian normalized transliteration"
+
 PROMPT_TEXT_PRETRAIN = "%type_name% of the cuneiform tablet %pub_info%"
-PROMPT_GRAMMAR_FINETUNE = "Provide the grammar annotation of this %type_name%"
-PROMPT_GRAMMAR_PRETRAIN_TITLE = "Grammar annotation of %type_name%"
-PROMPT_MEANING_FINETUNE_TRANS = "Provide the lexical definition of this %type_name%"
-PROMPT_MEANING_FINETUNE_WORD = "Provide the lexical definition of this akkadian normalized transliteration"
+PROMPT_GRAMMAR_FINETUNE = "Provide the grammar of this %type_name%"
+PROMPT_GRAMMAR_PRETRAIN_TITLE = "Grammar of %type_name%"
+PROMPT_MEANING_FINETUNE_TRANS = "Provide the definition of this %type_name%"
+PROMPT_MEANING_FINETUNE_WORD = "Provide the definition of this akkadian normalized transliteration"
 PROMPT_LEMMA_FINETUNE = "Identify the lemma of this %type_name%"
-PROMPT_LEMMA_PRETRAIN_CONTENT = "Lexeme: %lexeme%\Forms: %derivatives%"
+PROMPT_LEMMA_PRETRAIN_CONTENT = "LEXEME: %lexeme%\nFORMS: %derivatives%"
 PROMPT_TRANS_AKK_TO_ENG = "Translate from %type_name% to english"
 PROMPT_TRANS_ENG_TO_AKK = "Translate from english to %type_name%"
-PROMPT_TRANSFORM_EPIG_TO_SPELL = "Convert this akkadian transliteration from epigraphic to normalized"
-PROMPT_TRANSFORM_SPELL_TO_EPIG = "Convert this akkadian transliteration from normalized to epigraphic"
-PROMPT_TRANSFORM_COMPACT_TO_SPELL = "Convert this akkadian transliteration from compact to normalized"
-PROMPT_TRANSFORM_SPELL_TO_COMPACT = "Convert this akkadian transliteration from normalized to compact"
+PROMPT_TRANSFORM_EPIG_TO_SPELL = "Convert from epigraphic akkadian transliteration to normalized"
+PROMPT_TRANSFORM_SPELL_TO_EPIG = "Convert from normalized akkadian transliteration to epigraphic"
+PROMPT_TRANSFORM_COMPACT_TO_SPELL = "Convert from compact akkadian transliteration to normalized"
+PROMPT_TRANSFORM_SPELL_TO_COMPACT = "Convert from normalized akkadian transliteration to compact"
 
 TITLE_TRANS_PT_TO_ENG = "%type_name% to english translation"
 TITLE_TRANS_PT_FROM_ENG = "english to %type_name% translation"
-TITLE_ROSETTA_PT = "Akkadian Transliteration Alignment"
-ROSETTA_HEADER_DICTIONARY = "| Akkadian Transliteration | Lemma | Definition | Grammar |\n|---|---|---|---|\n"
+TITLE_ROSETTA_PT = "Akkadian Transliteration"
+ROSETTA_HEADER_DICTIONARY = "| Akkadian | Lemma | Definition | Grammar |\n|---|---|---|---|\n"
 
-PROMPT_GRAMMAR_PRETRAIN_CONTENT = "%title%\n%word%\n%grammar%"
-PROMPT_GRAMMAR_ITEM_PREFIX = "- %variable%: %value%"
+PROMPT_GRAMMAR_PRETRAIN_CONTENT = "WORD:\n%word%\nGRAMMAR:\n%grammar%" #"%title%\n%word%\n%grammar%"
+PROMPT_GRAMMAR_ITEM_PREFIX = "%variable%: %value%"
 
 TRANS_TABLE_TEMPLATE = "| %h1% | %h2% |\n|---|---|\n"
 ROSETTA_TABLE_HEADER = "| Epigraphic | Normalized | Lemma | Definition |\n|---|---|---|---|---|\n"
@@ -123,7 +127,7 @@ def get_akkadian_context_lines(page_text):
         
     include_indices = set()
     for idx in akk_line_indices:
-        for j in range(max(0, idx - 2), min(len(lines), idx + 3)):
+        for j in range(max(0, idx - 1), min(len(lines), idx + 2)):
             include_indices.add(j)
             
     sorted_indices = sorted(list(include_indices))
@@ -163,10 +167,17 @@ def get_grammar_result(group):
         if not parse_list: continue
         for item in parse_list:
             var = item.get("variableName")
+            if var:
+                var = var.replace("Morphological Form", "Morphology")
+                var = var.replace("Grammatical Number", "Number")
             val = item.get("value")
-            if var and val:
-                results.append(PROMPT_GRAMMAR_ITEM_PREFIX.replace("%variable%", var).replace("%value%", val))
-    return "\n".join(results)
+            if val:
+                val = val.replace(" State", "")
+            if var and val and var != "Primary Classification":
+                joint = PROMPT_GRAMMAR_ITEM_PREFIX.replace("%variable%", var).replace("%value%", val)
+                if joint not in results:
+                    results.append(joint)
+    return ", ".join(results)
 
 
 class Deduplicator:

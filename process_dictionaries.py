@@ -183,7 +183,7 @@ def generate_dictionary_csvs(input_jsonl, output_dir):
     dedup = Deduplicator(db_path)
     
     rosetta_buffer = []
-    type_name = "akkadian epigraphic transliteration"
+    type_name = TYPE_EPIGRAPHIC
     
     with open(input_jsonl, "r", encoding="utf-8") as f:
         for line in f:
@@ -253,10 +253,11 @@ def generate_dictionary_csvs(input_jsonl, output_dir):
                         ])
                         
                 if definition and dedup.is_unique("dict_pt", word, definition, joined_lemmas, joined_grammar):
-                    content = f"Akkadian Transliteration Dictionary Entry\nWord: {word}\n"
-                    if joined_lemmas: content += f"Lemma: {joined_lemmas}\n"
-                    content += f"Definition: {definition}\n"
-                    if joined_grammar: content += f"Grammar: {joined_grammar}\n"
+                    #content = f"Akkadian Transliteration Dictionary Entry\nWORD: {word}\n"
+                    content = f"WORD: {word}\n"
+                    if joined_lemmas: content += f"LEMMA: {joined_lemmas}\n"
+                    content += f"MEANING: {definition}\n"
+                    if joined_grammar: content += f"GRAMMAR: {joined_grammar}\n"
                     pt_writers["dictionary_pretrain"].writerow([linearize(content)])
                     
                 if definition:
@@ -267,7 +268,8 @@ def generate_dictionary_csvs(input_jsonl, output_dir):
                 chunk = rosetta_buffer[:ROSETTA_CHUNK]
                 rosetta_buffer = rosetta_buffer[ROSETTA_CHUNK:]
                 title = "# Akkadian Dictionary Alignment Table"
-                table = f"{title}\n\n" + ROSETTA_HEADER_DICTIONARY
+                #table = f"{title}\n\n" + ROSETTA_HEADER_DICTIONARY
+                table = ROSETTA_HEADER_DICTIONARY
                 for w_col, l_col, d_col, g_col in chunk: 
                     table += f"| {w_col} | {l_col} | {d_col} | {g_col} |\n"
                 pt_writers["rosetta_pretrain"].writerow([linearize(table)])

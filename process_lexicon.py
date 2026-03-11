@@ -5,6 +5,7 @@ from collections import defaultdict
 from corpus_utils import (
     CSV_DIALECT_FINETUNE, CSV_DIALECT_PRETRAIN, Deduplicator, 
     ROSETTA_TABLE_HEADER_LEXICON, TITLE_ROSETTA_PT, 
+    TYPE_EPIGRAPHIC, TYPE_COMPACT, TYPE_NORMALIZED,
     PROMPT_LEMMA_FINETUNE, PROMPT_LEMMA_PRETRAIN_CONTENT, linearize
 )
 
@@ -37,7 +38,8 @@ def process_lexicon():
     def flush_rosetta():
         nonlocal current_rosetta_rows
         if not current_rosetta_rows: return
-        table_str = f"{TITLE_ROSETTA_PT}\n\n{ROSETTA_TABLE_HEADER_LEXICON}"
+        #table_str = f"{TITLE_ROSETTA_PT}\n\n{ROSETTA_TABLE_HEADER_LEXICON}"
+        table_str = f"{ROSETTA_TABLE_HEADER_LEXICON}"
         for row in current_rosetta_rows:
             table_str += f"| {' | '.join(row)} |\n"
         writer_rosetta_pt.writerow([linearize(table_str)])
@@ -64,19 +66,19 @@ def process_lexicon():
             # Finetune Lemma
             if dedup.is_unique("lemma_ft_epig", form, lexeme):
                 writer_lemma_ft.writerow([
-                    linearize(PROMPT_LEMMA_FINETUNE.replace("%type_name%", "akkadian epigraphic transliteration"), is_finetune=True), 
+                    linearize(PROMPT_LEMMA_FINETUNE.replace("%type_name%", TYPE_EPIGRAPHIC), is_finetune=True), 
                     linearize(form, is_finetune=True), 
                     linearize(lexeme, is_finetune=True)
                 ])
             
             #if dedup.is_unique("lemma_ft_comp", comp, lexeme):
-            #    writer_lemma_ft.writerow([PROMPT_LEMMA_FINETUNE.replace("%type_name%", "akkadian compact transliteration"), comp, lexeme])
+            #    writer_lemma_ft.writerow([PROMPT_LEMMA_FINETUNE.replace("%type_name%", TYPE_COMPACT), comp, lexeme])
                 
-                writer_lemma_ft.writerow([
-                    linearize(PROMPT_LEMMA_FINETUNE.replace("%type_name%", "akkadian normalized transliteration"), is_finetune=True), 
-                    linearize(norm, is_finetune=True), 
-                    linearize(lexeme, is_finetune=True)
-                ])
+            #    writer_lemma_ft.writerow([
+            #        linearize(PROMPT_LEMMA_FINETUNE.replace("%type_name%", TYPE_NORMALIZED), is_finetune=True), 
+            #        linearize(norm, is_finetune=True), 
+            #        linearize(lexeme, is_finetune=True)
+            #    ])
             
             # Rosetta
             if dedup.is_unique("rosetta", form, norm, lexeme, w_type):

@@ -145,9 +145,9 @@ def process_corpus(args):
             # --- 1. TEXT PRETRAIN ---
             # Uniqueness: Full text content per mode
             variants_md = [
-                ("akkadian epigraphic transliteration", format_epigraphy(units, False)),
-                #("compact epigraphic transliteration", format_epigraphy(units, True)),
-                #("akkadian orthography", format_spelling(units))
+                (TYPE_EPIGRAPHIC, format_epigraphy(units, False)),
+                #(TYPE_COMPACT, format_epigraphy(units, True)),
+                #(TYPE_NORMALIZED, format_spelling(units))
             ]
             for type_name, content in variants_md:
                 if content:
@@ -186,9 +186,9 @@ def process_corpus(args):
                 q_f = " ".join(g_form)
                 
                 word_variants = [
-                    ("akkadian epigraphic transliteration", q_e),
-                    #("compact epigraphic transliteration", q_c),
-                    #("akkadian orthography", q_f)
+                    (TYPE_EPIGRAPHIC, q_e),
+                    #(TYPE_COMPACT, q_c),
+                    #(TYPE_NORMALIZED, q_f)
                 ]
 
                 # Grammar (Finetune + Pretrain)
@@ -364,7 +364,8 @@ def process_corpus(args):
                         h1, h2 = "English", label_akk
                         title = TITLE_TRANS_PT_FROM_ENG.replace("%type_name%", type_name)
                     
-                    table = f"{title}\n\n" + TRANS_TABLE_TEMPLATE.replace("%h1%", h1).replace("%h2%", h2)
+                    #table = f"{title}\n\n" + TRANS_TABLE_TEMPLATE.replace("%h1%", h1).replace("%h2%", h2)
+                    table = TRANS_TABLE_TEMPLATE.replace("%h1%", h1).replace("%h2%", h2)
                     for c1, c2 in chunk: table += f"| {c1} | {c2} |\n"
                     pt_writers["translations_pretrain"].writerow([linearize(table)])
 
@@ -372,7 +373,8 @@ def process_corpus(args):
                 chunk = rosetta_buffer[:ROSETTA_CHUNK_SIZE]
                 rosetta_buffer = rosetta_buffer[ROSETTA_CHUNK_SIZE:]
                 title = TITLE_ROSETTA_PT
-                table = f"{title}\n\n" + ROSETTA_TABLE_HEADER
+                #table = f"{title}\n\n" + ROSETTA_TABLE_HEADER
+                table = ROSETTA_TABLE_HEADER
                 for e, f, w, m in chunk: table += f"| {e} | {f} | {w} | {m} |\n"
                 pt_writers["rosetta_pretrain"].writerow([linearize(table)])
 
