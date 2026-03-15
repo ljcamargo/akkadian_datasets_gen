@@ -254,10 +254,10 @@ def generate_dictionary_csvs(input_jsonl, output_dir):
                         
                 if definition and dedup.is_unique("dict_pt", word, definition, joined_lemmas, joined_grammar):
                     #content = f"Akkadian Transliteration Dictionary Entry\nWORD: {word}\n"
-                    content = f"WORD: {word}\n"
+                    content = f"AKKADIAN:\n{word}\n"
                     if joined_lemmas: content += f"LEMMA: {joined_lemmas}\n"
-                    content += f"MEANING: {definition}\n"
-                    if joined_grammar: content += f"GRAMMAR: {joined_grammar}\n"
+                    content += f"ENGLISH:\n{definition}\n"
+                    if joined_grammar: content += f"GRAMMAR:\n{joined_grammar}\n"
                     pt_writers["dictionary_pretrain"].writerow([linearize(content)])
                     
                 if definition:

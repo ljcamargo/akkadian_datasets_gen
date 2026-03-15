@@ -32,10 +32,10 @@ print("Dictionaries loaded.")
 def format_entry(lemma, entry):
     meanings = []
     grammars = []
-    for m in entry.get("meanings", [])[:2]: # limit to 2 meanings to save tokens
+    for m in entry.get("meanings", [])[:1]: # limit to 2 meanings to save tokens
         if m.get("definition") and m.get("definition") not in meanings:
             meanings.append(m.get("definition"))
-        for g in m.get("grammar", [])[:2]: # limit to 2 grammar annotations to save tokens
+        for g in m.get("grammar", [])[:1]: # limit to 2 grammar annotations to save tokens
             if g.get("parse"):
                 if g.get("parse") not in grammars:
                     grammars.append(g.get("parse"))
@@ -147,12 +147,13 @@ def process_reasoned():
     writer = csv.writer(f_out, **CSV_DIALECT_FINETUNE)
     writer.writerow(["instruct", "query", "result"])
     preprompt = PROMPT_TRANS_AKK_TO_ENG.replace("%type_name%", TYPE_EPIGRAPHIC)
-    prompt_inst = f"{preprompt} with reasoned explanation"
+    prompt_inst = f"{preprompt} with reasoning"
 
     print("Processing train.csv dataset to generate reasoned translations...")
     with open(input_file, "r", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         count = 0
+        excluded = 0
         for row in reader:
             translit = row.get("transliteration", "").strip()
             translat = row.get("translation", "").strip()
@@ -185,19 +186,26 @@ def process_reasoned():
             
             reasoning_str = yaml.dump(reasoning_list, default_flow_style=False, sort_keys=False, allow_unicode=True)
             # escape all newlines in the translation to avoid CSV issues
-            result_str = f"TRANSLATION:\n{translat}\nREASONING:\n{reasoning_str.strip()}"
+            result_str = f"{translat}\nREASONING:\n{reasoning_str.strip()}"
             # line formatting logic handled internally inside corpus_utils
-            writer.writerow([
+            rows = [
                 linearize(prompt_inst, is_finetune=True), 
                 linearize(translit, is_finetune=True), 
                 linearize(result_str, is_finetune=True)
-            ])
+            ]
+            max_length = 1024 * 2.33
+            row_length = sum(len(r) for r in rows)
+            if row_length > max_length:
+                excluded += 1
+                print(f">>> Skipping large row ({row_length}) '{rows[2][:30]}...'")
+                continue
+            writer.writerow(rows)
             count += 1
             if count % 1000 == 0:
                 print(f"Processed {count} entries...")
 
     f_out.close()
-    print("Reasoned train dataset processing complete.")
+    print(f"Reasoned train dataset processing complete. Total entries: {count}, Excluded for length: {excluded} ({(excluded/(count+excluded))*100:.2f}%)")
 
 if __name__ == "__main__":
     process_reasoned()

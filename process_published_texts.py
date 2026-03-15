@@ -208,7 +208,7 @@ def process_corpus(args):
                                 content_pt = PROMPT_GRAMMAR_PRETRAIN_CONTENT.replace("%title%", title_pt).replace("%word%", q_val).replace("%grammar%", parse_raw)
                                 pt_writers["grammar_pretrain"].writerow([linearize(content_pt)])
 
-                # Meaning Finetune
+                # Meanings Finetune
                 if u_trans:
                     for type_name, q_val in word_variants:
                         if q_val:
@@ -224,6 +224,7 @@ def process_corpus(args):
                     if u_word:
                         word_meaning_res = u_word if u_trans == "PN" else u_trans
                         res_t = linearize(word_meaning_res)
+                        
                         if dedup.is_unique("meaning_word", u_word, res_t):
                             ft_writers["meanings_finetune"].writerow([
                                 linearize(PROMPT_MEANING_FINETUNE_WORD, is_finetune=True), 
@@ -250,7 +251,9 @@ def process_corpus(args):
                         for type_name, q_val in word_variants:
                             if q_val:
                                 # Handle PN replacement for Translations
-                                actual_part = q_val if part == "PN" else part
+                                actual_part = u_word if part == "PN" else part
+                                #if part == "PN":
+                                #    print(f"Note: Replacing 'PN' with '{q_val}' for translation of word '{u_word}' in text '{pub_info}'.")
                                 cleaned_part = clean_translation(actual_part)
                                 if dedup.is_unique("trans", type_name, q_val, cleaned_part):
                                     ft_writers["translations_finetune"].writerow([
@@ -358,16 +361,23 @@ def process_corpus(args):
                     
                     label_akk = type_name.capitalize()
                     if direction == "to_eng":
-                        h1, h2 = label_akk, "English"
-                        title = TITLE_TRANS_PT_TO_ENG.replace("%type_name%", type_name)
-                    else:
-                        h1, h2 = "English", label_akk
-                        title = TITLE_TRANS_PT_FROM_ENG.replace("%type_name%", type_name)
+                        h1, h2 = "Akkadian", "English"
+                        #title = TITLE_TRANS_PT_TO_ENG.replace("%type_name%", type_name)
+                    #else:
+                    #    h1, h2 = "English", "Akkadian"
+                        #title = TITLE_TRANS_PT_FROM_ENG.replace("%type_name%", type_name)
                     
-                    #table = f"{title}\n\n" + TRANS_TABLE_TEMPLATE.replace("%h1%", h1).replace("%h2%", h2)
-                    table = TRANS_TABLE_TEMPLATE.replace("%h1%", h1).replace("%h2%", h2)
-                    for c1, c2 in chunk: table += f"| {c1} | {c2} |\n"
-                    pt_writers["translations_pretrain"].writerow([linearize(table)])
+                        #table = f"{title}\n\n" + TRANS_TABLE_TEMPLATE.replace("%h1%", h1).replace("%h2%", h2)
+                        
+                        #table = TRANS_TABLE_TEMPLATE.replace("%h1%", h1).replace("%h2%", h2)
+                        #content_str = f"AKKADIAN:\n{c1}\nENGLISH:\n{c2}\n---\n"
+                        #for c1, c2 in chunk: table += f"| {c1} | {c2} |\n"
+                        #pt_writers["translations_pretrain"].writerow([linearize(table)])
+
+                        for c1, c2 in chunk:
+                            content_str = f"AKKADIAN:\n{c1}\nENGLISH:\n{c2}"
+                            pt_writers["translations_pretrain"].writerow([linearize(content_str)])
+
 
             while len(rosetta_buffer) >= ROSETTA_CHUNK_SIZE:
                 chunk = rosetta_buffer[:ROSETTA_CHUNK_SIZE]

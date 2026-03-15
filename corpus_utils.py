@@ -21,7 +21,7 @@ TITLE_EPIGRAPHIC = "Akkadian Transliteration"
 TITLE_COMPACT = " Akkadian Compact Transliteration"
 TITLE_SPELLING = "Akkadian Normalized Transliteration"
 
-TYPE_EPIGRAPHIC = "akkadian transliteration"
+TYPE_EPIGRAPHIC = "akkadian"
 TYPE_COMPACT = "akkadian compact transliteration"
 TYPE_NORMALIZED = "akkadian normalized transliteration"
 
@@ -29,9 +29,9 @@ PROMPT_TEXT_PRETRAIN = "%type_name% of the cuneiform tablet %pub_info%"
 PROMPT_GRAMMAR_FINETUNE = "Provide the grammar of this %type_name%"
 PROMPT_GRAMMAR_PRETRAIN_TITLE = "Grammar of %type_name%"
 PROMPT_MEANING_FINETUNE_TRANS = "Provide the definition of this %type_name%"
-PROMPT_MEANING_FINETUNE_WORD = "Provide the definition of this akkadian normalized transliteration"
+PROMPT_MEANING_FINETUNE_WORD = "Provide the definition of this akkadian word"
 PROMPT_LEMMA_FINETUNE = "Identify the lemma of this %type_name%"
-PROMPT_LEMMA_PRETRAIN_CONTENT = "LEXEME: %lexeme%\nFORMS: %derivatives%"
+PROMPT_LEMMA_PRETRAIN_CONTENT = "LEXEME:\n%lexeme%\nFORMS:\n%derivatives%"
 PROMPT_TRANS_AKK_TO_ENG = "Translate from %type_name% to english"
 PROMPT_TRANS_ENG_TO_AKK = "Translate from english to %type_name%"
 PROMPT_TRANSFORM_EPIG_TO_SPELL = "Convert from epigraphic akkadian transliteration to normalized"
@@ -44,7 +44,7 @@ TITLE_TRANS_PT_FROM_ENG = "english to %type_name% translation"
 TITLE_ROSETTA_PT = "Akkadian Transliteration"
 ROSETTA_HEADER_DICTIONARY = "| Akkadian | Lemma | Definition | Grammar |\n|---|---|---|---|\n"
 
-PROMPT_GRAMMAR_PRETRAIN_CONTENT = "WORD:\n%word%\nGRAMMAR:\n%grammar%" #"%title%\n%word%\n%grammar%"
+PROMPT_GRAMMAR_PRETRAIN_CONTENT = "AKKADIAN:\n%word%\nGRAMMAR:\n%grammar%" #"%title%\n%word%\n%grammar%"
 PROMPT_GRAMMAR_ITEM_PREFIX = "%variable%: %value%"
 
 TRANS_TABLE_TEMPLATE = "| %h1% | %h2% |\n|---|---|\n"
@@ -89,7 +89,7 @@ def clean_finetune_lints(text):
     text = text.replace('___GAP___', '<gap>')
     return text
 
-def linearize(text, is_finetune=False):
+def linearize(text, is_finetune=True):
     if not text: return ""
     text = standardize_orthography(text)
     if is_finetune:
@@ -113,21 +113,22 @@ def get_akkadian_context_lines(page_text):
     akk_line_indices = []
     for i, line in enumerate(lines):
         # Improved Syllable Pattern at least two times
-        if len(syl_pattern.findall(line)) >= 2:
+        if len(syl_pattern.findall(line)) >= 3:
             # AND ( special chars >= 2 OR keyword >= 1 )
             special_count = len(special_char_pattern.findall(line))
             has_keyword = any(kw in line for kw in keywords)
             
-            if special_count >= 2 or has_keyword:
+            if special_count >= 3 or has_keyword:
                 akk_line_indices.append(i)
             
     if not akk_line_indices:
         #print(">>>>>>>>>>>>>>> No Akkadian text matched", page_text[:100])
         return ""
         
+    lines_margin = 0
     include_indices = set()
     for idx in akk_line_indices:
-        for j in range(max(0, idx - 1), min(len(lines), idx + 2)):
+        for j in range(max(0, idx - lines_margin), min(len(lines), idx + (lines_margin + 1))):
             include_indices.add(j)
             
     sorted_indices = sorted(list(include_indices))

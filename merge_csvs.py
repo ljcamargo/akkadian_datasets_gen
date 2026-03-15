@@ -5,16 +5,16 @@ from corpus_utils import CSV_DIALECT_FINETUNE, CSV_DIALECT_PRETRAIN
 
 
 PRETRAIN_FILES = [
-    "workspace/outputs/published_texts/grammar_pretrain.csv",
+    #"workspace/outputs/published_texts/grammar_pretrain.csv",
     "workspace/outputs/published_texts/translations_pretrain.csv",
     "workspace/outputs/published_texts/texts_pretrain.csv",
-    "workspace/outputs/published_texts/rosetta_pretrain.csv",
+    #"workspace/outputs/published_texts/rosetta_pretrain.csv",
 
     "workspace/outputs/dictionary/dictionary_pretrain.csv",
-    "workspace/outputs/dictionary/rosetta_pretrain.csv",
+    #"workspace/outputs/dictionary/rosetta_pretrain.csv",
 
-    "workspace/outputs/lexicon/lemma_pretrain.csv",
-    "workspace/outputs/lexicon/rosetta_pretrain.csv",
+    #"workspace/outputs/lexicon/lemma_pretrain.csv",
+    #"workspace/outputs/lexicon/rosetta_pretrain.csv",
 
     "workspace/outputs/publications/publications_pretrain.csv",
 
@@ -22,26 +22,21 @@ PRETRAIN_FILES = [
 ]
 
 FINETUNE_FILES = [
-    # EASY
+    # EASY AND MEDIUM
     [
-        "workspace/outputs/dictionary/lemma_finetune.csv",
-        "workspace/outputs/dictionary/grammar_finetune.csv",
-        "workspace/outputs/dictionary/meaning_finetune.csv",
+        #"workspace/outputs/dictionary/lemma_finetune.csv",
+        #"workspace/outputs/dictionary/grammar_finetune.csv",
+        ## "workspace/outputs/dictionary/meaning_finetune.csv",
 
-        "workspace/outputs/published_texts/lemma_finetune.csv",
-        "workspace/outputs/published_texts/grammar_finetune.csv",
-        "workspace/outputs/published_texts/meanings_finetune.csv",
+        #"workspace/outputs/published_texts/lemma_finetune.csv",
+        #"workspace/outputs/published_texts/grammar_finetune.csv",
+        ## "workspace/outputs/published_texts/meanings_finetune.csv",
         #"workspace/outputs/published_texts/transforms_finetune.csv",
 
-        "workspace/outputs/lexicon/lemma_finetune.csv",
-    ],
-    # MEDIUM
-    [
+        #"workspace/outputs/lexicon/lemma_finetune.csv",
         "workspace/outputs/published_texts/translations_finetune.csv",
         "workspace/outputs/dictionary/translations_finetune.csv",
-    ],
-    # HARD
-    [
+    #HARD
         "workspace/outputs/train/translations_finetune.csv",
         "workspace/outputs/train/reasoned_translations_finetune.csv",
     ],
@@ -49,12 +44,15 @@ FINETUNE_FILES = [
 
 def process_file_list(file_list, expected_header):
     all_rows = []
+    all_sizes = []
     
     for input_file in file_list:
         if not os.path.exists(input_file):
             print(f"Warning: {input_file} not found. Skipping.")
             continue
-            
+        file_size_bytes = os.path.getsize(input_file)
+        file_size_mb = file_size_bytes / (1024 * 1024)
+        all_sizes.append(file_size_bytes)
         with open(input_file, 'r', encoding='utf-8') as in_f:
             reader = csv.reader(in_f)
             try:
@@ -69,7 +67,7 @@ def process_file_list(file_list, expected_header):
                         all_rows.append(row)
                         count += 1
                         
-                print(f"  + Extracted {count} rows from {input_file}")
+                print(f"  + Extracted ({file_size_mb:.2f}Mb) {count} rows from {input_file}")
             except StopIteration:
                 print(f"Warning: {input_file} is empty. Skipping.")
                 
@@ -116,15 +114,6 @@ def merge_csvs():
     output_dir = "workspace/outputs"
     os.makedirs(output_dir, exist_ok=True)
     
-    finetune_out = os.path.join(output_dir, "finetune.csv")
-    merge_csvs_for_target(
-        finetune_out, 
-        FINETUNE_FILES, 
-        ["instruct", "query", "result"], 
-        CSV_DIALECT_FINETUNE,
-        preserve_curriculum=True
-    )
-    
     pretrain_out = os.path.join(output_dir, "pretrain.csv")
     merge_csvs_for_target(
         pretrain_out, 
@@ -132,6 +121,15 @@ def merge_csvs():
         ["content"], 
         CSV_DIALECT_PRETRAIN,
         preserve_curriculum=False
+    )
+
+    finetune_out = os.path.join(output_dir, "finetune.csv")
+    merge_csvs_for_target(
+        finetune_out, 
+        FINETUNE_FILES, 
+        ["instruct", "query", "result"], 
+        CSV_DIALECT_FINETUNE,
+        preserve_curriculum=True
     )
 
 if __name__ == "__main__":
