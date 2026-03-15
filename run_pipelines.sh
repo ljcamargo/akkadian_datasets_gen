@@ -4,8 +4,6 @@
 
 set -e
 
-mkdir -p workspace/outputs
-
 echo "Starting Akkadian pipeline execution..."
 
 echo "==> Running process_published_texts.py"
