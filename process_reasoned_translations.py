@@ -197,7 +197,7 @@ def process_reasoned():
             row_length = sum(len(r) for r in rows)
             if row_length > max_length:
                 excluded += 1
-                print(f">>> Skipping large row ({row_length}) '{rows[2][:30]}...'")
+                #print(f">>> Skipping large row ({row_length}) '{rows[2][:30]}...'")
                 continue
             writer.writerow(rows)
             count += 1
