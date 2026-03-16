@@ -21,6 +21,9 @@ python3 process_lexicon.py
 echo "==> Running process_train.py"
 python3 process_train.py
 
+echo "==> Merge dictionaries"
+python3 merge_dictionaries.py
+
 echo "==> Running process_reasoned_translations.py"
 python3 process_reasoned_translations.py
 
