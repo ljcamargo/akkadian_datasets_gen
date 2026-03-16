@@ -47,11 +47,13 @@ def deep_merge(dict1, dict2, word):
             elif isinstance(value1, list) or isinstance(value2, list):
                 # Just log and keep first value
                 if value1 != value2:
-                    print(f"⚠️  Warning for word '{word}': {key} mismatch (one is list, one isn't). Keeping first.")
+                    pass
+                    #print(f"⚠️  Warning for word '{word}': {key} mismatch (one is list, one isn't). Keeping first.")
             # Both are non-lists
             else:
                 if value1 != value2:
-                    print(f"⚠️  Warning for word '{word}': {key} collision: {value1!r} vs {value2!r}. Keeping first.")
+                    pass
+                    #print(f"⚠️  Warning for word '{word}': {key} collision: {value1!r} vs {value2!r}. Keeping first.")
     
     return merged
 
