@@ -100,7 +100,7 @@ def remove_nul(file_iter):
     for line in file_iter:
         yield line.replace('\0', '')
 
-def get_akkadian_context_lines(page_text):
+def get_akkadian_context_lines(page_text, lines_margin=0):
     separator = '\\n' if '\\n' in page_text and '\n' not in page_text else '\n'
     lines = page_text.split(separator)
     
@@ -125,7 +125,6 @@ def get_akkadian_context_lines(page_text):
         #print(">>>>>>>>>>>>>>> No Akkadian text matched", page_text[:100])
         return ""
         
-    lines_margin = 0
     include_indices = set()
     for idx in akk_line_indices:
         for j in range(max(0, idx - lines_margin), min(len(lines), idx + (lines_margin + 1))):
@@ -136,7 +135,10 @@ def get_akkadian_context_lines(page_text):
     
     result_lines = []
     for idx in sorted_indices:
-        result_lines.append(lines[idx])
+        cleaned_line = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]', '', lines[idx])
+        cleaned_line = replace_gaps(cleaned_line)
+        cleaned_line = standardize_orthography(cleaned_line)
+        result_lines.append(cleaned_line)
         
     return '\n'.join(result_lines)
 

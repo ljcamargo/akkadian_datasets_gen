@@ -10,7 +10,7 @@ PRETRAIN_FILES = [
     "workspace/outputs/published_texts/texts_pretrain.csv",
     #"workspace/outputs/published_texts/rosetta_pretrain.csv",
 
-    "workspace/outputs/dictionary/dictionary_pretrain.csv",
+    #"workspace/outputs/dictionary/dictionary_pretrain.csv",
     #"workspace/outputs/dictionary/rosetta_pretrain.csv",
 
     #"workspace/outputs/lexicon/lemma_pretrain.csv",
@@ -34,6 +34,7 @@ FINETUNE_FILES = [
         #"workspace/outputs/published_texts/transforms_finetune.csv",
 
         #"workspace/outputs/lexicon/lemma_finetune.csv",
+        
         "workspace/outputs/published_texts/translations_finetune.csv",
         "workspace/outputs/dictionary/translations_finetune.csv",
     #HARD

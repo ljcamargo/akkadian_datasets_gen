@@ -10,6 +10,7 @@ from corpus_utils import get_akkadian_context_lines, remove_nul
 
 PRICE_PER_M_INPUT = 0.10 # gemini-2.5-flash-lite
 PRICE_PER_M_OUTPUT = 0.40 # gemini-2.5-flash-lite
+CONTEXT_LINES=2
 BATCH_SIZE = 2
 
 def main():
@@ -50,16 +51,16 @@ def main():
 Input Texts:
 {batched_pages}
 
-Extract the pairs from all the provided texts into a valid JSON object matching this schema. Note: The source text translations could be in English, German, French, Turkish, etc. Use an appropriate 3-letter ISO language code (e.g., "eng", "deu", "fra", "tur") as the key for the modern language translation:
+Extract the pairs from all the provided texts into a valid JSON object matching this schema. Note: The source text translations could be in English, German, French, Turkish, etc. Use an appropriate 3-letter ISO language code (e.g., "eng", "deu", "fra", "tur", etc) as the key for the modern language translation, use "akk" for akaddian; put the pairs in this order akk->other disregard the order in which they were found on the text, no need to reverse translation pairs, only include the translation pair if they are effectively found on text, do not try to translate yourself, just copy texts. If you cannot confidently identify any Akkadian text, return an empty list for "translations". If there are Akkadian texts that cannot be confidently paired with a translation, include them in the "unpaired" list and do not include non akkadian texts on the unpaired section. Do not include any text in the "unpaired" list that is already included in the "translations" pairs.:
 {{
   "translations": [
     {{
-      "<iso3_code>": "translated text in modern language",
-      "akk": "transliterated or normalized Akkadian text"
+      "akk": "transliterated or normalized Akkadian text",
+      "<iso3_code>": "translated text in modern language"
     }}
   ],
   "unpaired": [
-    "akkadian text that could not be paired with a translation, do not repeat if already paired"
+    "akkadian text that could not be paired with a translation, do not repeat if already paired, don't put unpaired texts in other languages than Akkadian"
   ]
 }}
 
@@ -70,17 +71,21 @@ If there is no Akkadian text, or if you cannot confidently extract pairs or unpa
     if args.dry_run:
         total_input_chars = 0
         total_output_tokens_estimated = 0
+        pages = 0
+        batches = 0
         
         for i in range(0, len(records_to_process), BATCH_SIZE):
             batch = records_to_process[i:i+BATCH_SIZE]
+            batches += 1
             batched_texts = []
             
             for row in batch:
                 pdf_name = row.get("pdf_name", "")
                 page = row.get("page", "")
                 page_text = row.get("page_text", "")
-                page_text = get_akkadian_context_lines(page_text)
+                page_text = get_akkadian_context_lines(page_text, lines_margin=CONTEXT_LINES)
                 if page_text:
+                    pages += 1
                     batched_texts.append(f"--- Page {page} from {pdf_name} ---\n{page_text}")
             
             if not batched_texts:
@@ -104,6 +109,8 @@ If there is no Akkadian text, or if you cannot confidently extract pairs or unpa
         output_cost = (total_output_tokens_estimated / 1000000) * PRICE_PER_M_OUTPUT
         
         print(f"--- Dry Run Estimation ---")
+        print(f"Total Pages with Akkadian Text: {pages}")
+        print(f"Total Batches: {batches}")
         print(f"Estimated Input Tokens: {total_input_tokens:,.0f} tokens")
         print(f"Estimated Output Tokens: {total_output_tokens_estimated:,.0f} tokens")
         print(f"Estimated Input Cost: ${input_cost:.4f}")
@@ -136,7 +143,7 @@ If there is no Akkadian text, or if you cannot confidently extract pairs or unpa
                 pdf_name = row.get("pdf_name", "")
                 page = row.get("page", "")
                 page_text = row.get("page_text", "")
-                page_text = get_akkadian_context_lines(page_text)
+                page_text = get_akkadian_context_lines(page_text, lines_margin=CONTEXT_LINES)
                 if page_text:
                     batched_texts.append(f"--- Page {page} from {pdf_name} ---\n{page_text}")
             
@@ -146,7 +153,7 @@ If there is no Akkadian text, or if you cannot confidently extract pairs or unpa
             
             batched_pages = "\n----\n".join(batched_texts)
             prompt = prompt_template.format(batched_pages=batched_pages)
-            max_tokens = (len(prompt) / 4) * 1.5
+            max_tokens = int((len(prompt) / 2.33) * 2)
             print("prompt len:", len(prompt))
             
             if args.show_prompt:
