@@ -1,9 +1,12 @@
 import csv
 import os
+import random
 from corpus_utils import (
     CSV_DIALECT_FINETUNE, CSV_DIALECT_PRETRAIN, Deduplicator, linearize,
     PROMPT_TRANS_AKK_TO_ENG, PROMPT_TRANS_ENG_TO_AKK, TYPE_EPIGRAPHIC, replace_gaps
 )
+
+ENG_TO_AKK_DROP_RATE = 0.75
 
 def process_train():
     input_file = "workspace/train.csv"
@@ -36,7 +39,8 @@ def process_train():
 
             # 1. Pretrain Content
             # content_str = f"# Akkadian Transliteration (OARE:{short_id})\n{translit}"
-            content_str = f"AKKADIAN:\n{translit}\nENGLISH:\n{translat}"
+            #content_str = f"AKKADIAN:\n{translit}\nENGLISH:\n{translat}"
+            content_str = f"{translit} = {translat}"
             writer_pt.writerow([linearize(content_str)])
 
             # 2. Finetune translation pairs
@@ -52,11 +56,12 @@ def process_train():
             # English -> Akkadian
             inst_eng_to_akk = PROMPT_TRANS_ENG_TO_AKK.replace("%type_name%", TYPE_EPIGRAPHIC)
             if dedup.is_unique("trans_ft_eng2akk", inst_eng_to_akk, translat, translit):
-                writer_ft.writerow([
-                    linearize(inst_eng_to_akk, is_finetune=True), 
-                    linearize(translat, is_finetune=True), 
-                    linearize(translit, is_finetune=True)
-                ])
+                if random.random() > ENG_TO_AKK_DROP_RATE:
+                    writer_ft.writerow([
+                        linearize(inst_eng_to_akk, is_finetune=True), 
+                        linearize(translat, is_finetune=True), 
+                        linearize(translit, is_finetune=True)
+                    ])
 
     f_trans_finetune.close()
     f_trans_pretrain.close()

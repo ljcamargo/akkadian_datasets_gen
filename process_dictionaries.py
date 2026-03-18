@@ -2,8 +2,10 @@ import csv
 import json
 import re
 import os
+import random
 from corpus_utils import *
 
+ENG_TO_AKK_DROP_RATE = 0.75
 GRAMMAR_MAP = {
     "person": {"1": "first", "2": "second", "3": "third", "1st": "first", "2nd": "second", "3rd": "third"},
     "gender": {"m.": "masculine", "f.": "feminine", "c.": "common"},
@@ -230,11 +232,13 @@ def generate_dictionary_csvs(input_jsonl, output_dir):
                             linearize(word, is_finetune=True),
                             linearize(cleaned_def, is_finetune=True)
                         ])
-                        ft_writers["translations_finetune"].writerow([
-                            linearize(PROMPT_TRANS_ENG_TO_AKK.replace("%type_name%", type_name), is_finetune=True),
-                            linearize(cleaned_def, is_finetune=True),
-                            linearize(word, is_finetune=True)
-                        ])
+                        # Randomly drop some English->Akkadian pairs to save space, as they are mostly redundant with Akkadian->English pairs
+                        if random.random() > ENG_TO_AKK_DROP_RATE:
+                            ft_writers["translations_finetune"].writerow([
+                                linearize(PROMPT_TRANS_ENG_TO_AKK.replace("%type_name%", type_name), is_finetune=True),
+                                linearize(cleaned_def, is_finetune=True),
+                                linearize(word, is_finetune=True)
+                            ])
 
                 if joined_lemmas:
                     if dedup.is_unique("lemma_ft", word, joined_lemmas):

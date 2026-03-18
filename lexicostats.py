@@ -3,10 +3,13 @@ import json
 import os
 import statistics
 from collections import Counter
+from corpus_utils import standardize_orthography, replace_gaps
 
 def generate_lexicostats():
     input_file = "workspace/train.csv"
+    input_file_2 = "workspace/outputs/published_texts/texts_pretrain.csv"
     output_dir = "workspace/outputs/train"
+    samples_file = "workspace/outputs/lexicostats_samples.txt"
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, "lexicostats.json")
     
@@ -20,43 +23,61 @@ def generate_lexicostats():
     syllable_counts = []
     
     print(f"Reading {input_file} to generate lexicostatistics...")
+    all_texts = []
     
-    with open(input_file, "r", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            translit = row.get("transliteration", "").strip()
-            if not translit:
-                continue
-                
-            # 1. Character frequency (excluding spaces)
-            for char in translit:
-                if not char.isspace():
-                    char_counter[char] += 1
+    def process_file(filepath):
+        """Process a CSV file and update counters."""
+        with open(filepath, "r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                translit = row.get("transliteration", "").strip()
+                if not translit:
+                    continue
+                translit = replace_gaps(translit)
+                translit = standardize_orthography(translit)
+                all_texts.append(translit)
+                translit = translit.replace("<gap>", " ")
+
                     
-            # 2. Word frequency
-            words = translit.split()
-            for word in words:
-                word_counter[word] += 1
-                word_lengths.append(len(word))
-                
-                # 3. Syllable frequency (split by '-')
-                syllables = word.split('-')
-                num_syllables = len(syllables)
-                syllable_counts.append(num_syllables)
-                
-                for syl in syllables:
-                    if syl:
-                        syllable_counter[syl] += 1
+                # 1. Character frequency (excluding spaces)
+                for char in translit:
+                    if not char.isspace():
+                        char_counter[char] += 1
                         
-                # 4. Prefix and Postfix frequency (words with > 1 syllable)
-                if num_syllables > 1:
-                    prefix = syllables[0]
-                    postfix = syllables[-1]
-                    if prefix:
-                        prefix_counter[prefix] += 1
-                    if postfix:
-                        postfix_counter[postfix] += 1
-                        
+                # 2. Word frequency
+                words = translit.split()
+                for word in words:
+                    word_counter[word] += 1
+                    word_lengths.append(len(word))
+                    
+                    # 3. Syllable frequency (split by '-')
+                    syllables = word.split('-')
+                    num_syllables = len(syllables)
+                    syllable_counts.append(num_syllables)
+                    
+                    for syl in syllables:
+                        if syl:
+                            syllable_counter[syl] += 1
+                            
+                    # 4. Prefix and Postfix frequency (words with > 1 syllable)
+                    if num_syllables > 1:
+                        prefix = syllables[0]
+                        postfix = syllables[-1]
+                        if prefix:
+                            prefix_counter[prefix] += 1
+                        if postfix:
+                            postfix_counter[postfix] += 1
+    
+    # Process both input files
+    process_file(input_file)
+    print(f"Reading {input_file_2} to generate lexicostatistics...")
+    process_file(input_file_2)
+
+    # Save a sample of processed texts for reference
+    with open(samples_file, "w", encoding="utf-8") as f:
+        for text in all_texts:
+            f.write(text + "\n")
+             
     def compute_stats(data_list):
         if not data_list:
             return {"mean": 0, "min": 0, "max": 0, "std": 0}

@@ -3,6 +3,8 @@ import csv
 import os
 import argparse
 import time
+import unicodedata
+import random
 from collections import defaultdict
 from corpus_utils import *
 
@@ -12,7 +14,7 @@ INPUT_DEFAULT = "workspace/oare_epigraphies.jsonl"
 OUTPUT_DIR = "workspace/outputs/published_texts"
 PRETRAIN_CHUNK_SIZE = 40
 ROSETTA_CHUNK_SIZE = 20
-
+ENG_TO_AKK_DROP_RATE = 0.75  # Drop some English->Akkadian pairs to save space, as they are mostly redundant with Akkadian->English pairs
 # --- HELPERS ---
 
 
@@ -57,7 +59,7 @@ def format_epigraphy(units, compact=False):
     
     for side in sorted_sides:
         if side == "rev." and ("obv." in sides_processed or any("obv" in str(s).lower() for s in sides_processed)):
-            lines_output.append("---")
+            lines_output.append("\n")
         sides_processed.append(side)
         
         sorted_lines = sorted(structure[side].keys())
@@ -69,8 +71,12 @@ def format_epigraphy(units, compact=False):
             formatted_groups = [sep.join(g) for g in groups]
             if formatted_groups:
                 lines_output.append(" ".join(formatted_groups))
-            
-    return "\n".join(lines_output)
+
+    # Multiline disabled       
+    # return "\n".join(lines_output)
+    final_text = " ".join(lines_output)
+    final_text = standardize_orthography(final_text)
+    return final_text
 
 def format_spelling(units):
     structure = defaultdict(lambda: defaultdict(list))
@@ -82,14 +88,19 @@ def format_spelling(units):
     sorted_sides = sorted(structure.keys(), key=lambda x: 0 if x == "obv." else 1 if x == "rev." else 2)
     for side in sorted_sides:
         if side == "rev." and lines_output:
-            lines_output.append("---")
+            lines_output.append("\n")
         sorted_lines = sorted(structure[side].keys())
         for line_num in sorted_lines:
             line_units = [u for u in structure[side][line_num] if u.get("form") is not None]
             if line_units:
                 text = " ".join([u["form"] for u in line_units])
                 lines_output.append(text)
-    return "\n".join(lines_output)
+    # Multiline disabled       
+    # return "\n".join(lines_output)
+    final_text = " ".join(lines_output)
+    final_text = final_text.replace("<gap>", " ")
+    final_text = standardize_orthography(final_text)
+    return final_text
 
 # --- CORE TASKS ---
 
@@ -251,7 +262,7 @@ def process_corpus(args):
                         for type_name, q_val in word_variants:
                             if q_val:
                                 # Handle PN replacement for Translations
-                                actual_part = u_word if part == "PN" else part
+                                actual_part = u_word if (part == "PN") or (part == "GN") else part
                                 #if part == "PN":
                                 #    print(f"Note: Replacing 'PN' with '{q_val}' for translation of word '{u_word}' in text '{pub_info}'.")
                                 cleaned_part = clean_translation(actual_part)
@@ -261,11 +272,13 @@ def process_corpus(args):
                                         linearize(q_val, is_finetune=True), 
                                         linearize(cleaned_part, is_finetune=True)
                                     ])
-                                    ft_writers["translations_finetune"].writerow([
-                                        linearize(PROMPT_TRANS_ENG_TO_AKK.replace("%type_name%", type_name), is_finetune=True), 
-                                        linearize(cleaned_part, is_finetune=True), 
-                                        linearize(q_val, is_finetune=True)
-                                    ])
+                                    # Randomly drop some English->Akkadian pairs to save space, as they are mostly redundant with Akkadian->English pairs
+                                    if random.random() > ENG_TO_AKK_DROP_RATE:
+                                        ft_writers["translations_finetune"].writerow([
+                                            linearize(PROMPT_TRANS_ENG_TO_AKK.replace("%type_name%", type_name), is_finetune=True), 
+                                            linearize(cleaned_part, is_finetune=True), 
+                                            linearize(q_val, is_finetune=True)
+                                        ])
                                     trans_p_buffers[(type_name, "to_eng")].append((q_val, cleaned_part))
                                     trans_p_buffers[(type_name, "from_eng")].append((cleaned_part, q_val))
 
@@ -375,7 +388,8 @@ def process_corpus(args):
                         #pt_writers["translations_pretrain"].writerow([linearize(table)])
 
                         for c1, c2 in chunk:
-                            content_str = f"AKKADIAN:\n{c1}\nENGLISH:\n{c2}"
+                            #content_str = f"AKKADIAN:\n{c1}\nENGLISH:\n{c2}"
+                            content_str = f"{c1} = {c2}"
                             pt_writers["translations_pretrain"].writerow([linearize(content_str)])
 
 

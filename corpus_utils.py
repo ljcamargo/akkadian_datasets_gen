@@ -2,6 +2,7 @@ import csv
 import os
 import sqlite3
 import hashlib
+import unicodedata
 import re
 
 # --- CONFIGURATION CONSTANTS ---
@@ -79,6 +80,11 @@ def standardize_orthography(text):
     if not text: return ""
     text = text.replace('(d)', '{d}').replace('(ki)', '{ki}').replace('(TÚG)', 'TÚG')
     text = re.sub(r'(\d+\.\d{4})\d+', r'\1', text)
+    subscript_map = str.maketrans('₀₁₂₃₄₅₆₇₈₉', '0123456789')
+    text = text.translate(subscript_map)
+    superscript_map = str.maketrans('⁰¹²³⁴⁵⁶⁷⁸⁹', '0123456789')
+    text = text.translate(superscript_map)
+    text = unicodedata.normalize('NFC', text)
     return text
 
 def clean_finetune_lints(text):
@@ -92,8 +98,8 @@ def clean_finetune_lints(text):
 def linearize(text, is_finetune=True):
     if not text: return ""
     text = standardize_orthography(text)
-    if is_finetune:
-        text = clean_finetune_lints(text)
+    text = replace_gaps(text)
+    text = clean_finetune_lints(text)
     return text.replace("\n", "\\n")
 
 def remove_nul(file_iter):

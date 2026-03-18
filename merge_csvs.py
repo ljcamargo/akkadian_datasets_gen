@@ -17,27 +17,22 @@ PRETRAIN_FILES = [
     #"workspace/outputs/lexicon/rosetta_pretrain.csv",
 
     "workspace/outputs/publications/publications_pretrain.csv",
-
     "workspace/outputs/train/translations_pretrain.csv",
 ]
 
 FINETUNE_FILES = [
-    # EASY AND MEDIUM
     [
         #"workspace/outputs/dictionary/lemma_finetune.csv",
         #"workspace/outputs/dictionary/grammar_finetune.csv",
         ## "workspace/outputs/dictionary/meaning_finetune.csv",
-
         #"workspace/outputs/published_texts/lemma_finetune.csv",
         #"workspace/outputs/published_texts/grammar_finetune.csv",
         ## "workspace/outputs/published_texts/meanings_finetune.csv",
         #"workspace/outputs/published_texts/transforms_finetune.csv",
-
         #"workspace/outputs/lexicon/lemma_finetune.csv",
         
         "workspace/outputs/published_texts/translations_finetune.csv",
         "workspace/outputs/dictionary/translations_finetune.csv",
-    #HARD
         "workspace/outputs/train/translations_finetune.csv",
         "workspace/outputs/train/reasoned_translations_finetune.csv",
     ],
