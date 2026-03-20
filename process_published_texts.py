@@ -105,6 +105,7 @@ def format_spelling(units):
 # --- CORE TASKS ---
 
 def process_corpus(args):
+    random.seed(42)  # For reproducible datasets
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     dedup = Deduplicator(f"{OUTPUT_DIR}/dedup.db")
     

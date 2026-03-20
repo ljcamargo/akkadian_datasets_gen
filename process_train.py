@@ -9,6 +9,7 @@ from corpus_utils import (
 ENG_TO_AKK_DROP_RATE = 0.75
 
 def process_train():
+    random.seed(42)  # For reproducible datasets
     input_file = "workspace/train.csv"
     output_dir = "workspace/outputs/train"
     os.makedirs(output_dir, exist_ok=True)

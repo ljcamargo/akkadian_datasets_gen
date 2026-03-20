@@ -155,6 +155,7 @@ def extract_dictionary_patterns(input_file, output_jsonl):
     print(f"Extraction complete. Output saved to {output_jsonl}")
 
 def generate_dictionary_csvs(input_jsonl, output_dir):
+    random.seed(42)  # For reproducible datasets
     print("Generating dictionary CSVs...")
     if not os.path.exists(input_jsonl):
         print(f"Error: {input_jsonl} not found.")

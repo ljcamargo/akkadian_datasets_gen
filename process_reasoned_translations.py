@@ -55,7 +55,7 @@ def format_entry(lemma, entry):
     if meanings:
         res["Meanings"] = '; '.join(meanings[:3]) # limit to 3 meanings to save tokens
     if grammars:
-        res["Grammar"] = ", ".join({part for s in grammars for part in s.split(", ")})
+        res["Grammar"] = ", ".join(sorted({part for s in grammars for part in s.split(", ")}))
     return res
 
 def fetch_dict_info(cand):
