@@ -10,6 +10,14 @@ import unicodedata
 from collections import defaultdict
 from pathlib import Path
 
+# --- CONFIGURATION CONSTANTS (Local) ---
+BASE_DIR = "workspace"
+INPUT_DEFAULT = f"{BASE_DIR}/oare_epigraphies.jsonl"
+OUTPUT_DIR_PUBLISHED = f"{BASE_DIR}/outputs/published_texts"
+PRETRAIN_CHUNK_SIZE = 40
+ROSETTA_CHUNK_SIZE = 20
+ENG_TO_AKK_DROP_RATE = 0.75
+
 # --- CONFIGURATION CONSTANTS (from corpus_utils) ---
 CSV_DIALECT_FINETUNE = {"quoting": csv.QUOTE_ALL, "lineterminator": "\n"}
 CSV_DIALECT_PRETRAIN = {"quoting": csv.QUOTE_ALL, "lineterminator": "\n"}
@@ -20,14 +28,6 @@ ROSETTA_HEADER_DICTIONARY = "| Akkadian | Lemma | Definition | Grammar |\n|---|-
 ROSETTA_TABLE_HEADER = "| Epigraphic | Normalized | Lemma | Definition |\n|---|---|---|---|---|\n"
 HEADER_TEMPLATE = "Cuneiform Tablet %text_id%\n%title%\n\n"
 TITLE_EPIGRAPHIC = "Akkadian Transliteration"
-
-# --- CONFIGURATION CONSTANTS (Local) ---
-INPUT_DEFAULT = "workspace/oare_epigraphies.jsonl"
-OUTPUT_DIR_PUBLISHED = "workspace/outputs/published_texts"
-PRETRAIN_CHUNK_SIZE = 40
-ROSETTA_CHUNK_SIZE = 20
-ENG_TO_AKK_DROP_RATE = 0.75
-
 GRAMMAR_MAP = {
     "person": {"1": "first", "2": "second", "3": "third", "1st": "first", "2nd": "second", "3rd": "third"},
     "gender": {"m.": "masculine", "f.": "feminine", "c.": "common"},
@@ -36,21 +36,21 @@ GRAMMAR_MAP = {
     "suffix": {"suff.": True, "suffix": True}
 }
 
-INPUT_DICT = 'workspace/eBL_Dictionary.csv'
-OUTPUT_DIR_DICT = 'workspace/outputs/dictionary'
+INPUT_DICT = f'{BASE_DIR}/eBL_Dictionary.csv'
+OUTPUT_DIR_DICT = f'{BASE_DIR}/outputs/dictionary'
 JSONL_DICT = f"{OUTPUT_DIR_DICT}/dictionary_parsed.jsonl"
 
-INPUT_PUB = "workspace/publications.csv"
-OUTPUT_DIR_PUB = "workspace/outputs/publications"
+INPUT_PUB = f'{BASE_DIR}/publications.csv'
+OUTPUT_DIR_PUB = f"{BASE_DIR}/outputs/publications"
 
-INPUT_TRAIN = "workspace/train.csv"
-OUTPUT_DIR_TRAIN = "workspace/outputs/train"
+INPUT_TRAIN = f"{BASE_DIR}/train.csv"
+OUTPUT_DIR_TRAIN = f"{BASE_DIR}/outputs/train"
 
-LEMMA_DERIVATIVES_JSON = "workspace/outputs/lexicon/lemma_derivatives.json"
+LEMMA_DERIVATIVES_JSON = f"{BASE_DIR}/outputs/lexicon/lemma_derivatives.json"
 
 DICT_PATH_MERGE = Path(JSONL_DICT)
 PUBTEXTS_PATH_MERGE = Path(f"{OUTPUT_DIR_PUBLISHED}/dictionary_parsed.jsonl")
-OUTPUT_MERGED_DICT = Path("workspace/outputs/final_dictionary.json")
+OUTPUT_MERGED_DICT = Path(f"{BASE_DIR}/outputs/final_dictionary.json")
 
 PRETRAIN_FILES = [
     f"{OUTPUT_DIR_PUBLISHED}/translations_pretrain.csv",
@@ -515,15 +515,15 @@ def process_file_list(fl, eh):
 def merge_csvs():
     print("Starting merge_csvs...")
     random.seed(42)  # For mathematically reproducible datasets
-    os.makedirs("workspace/outputs", exist_ok=True)
-    with open("workspace/outputs/pretrain.csv", 'w', encoding='utf-8', newline='') as f:
+    os.makedirs(f"{BASE_DIR}/outputs", exist_ok=True)
+    with open(f"{BASE_DIR}/outputs/pretrain.csv", 'w', encoding='utf-8', newline='') as f:
         w = csv.writer(f, **CSV_DIALECT_PRETRAIN)
         w.writerow(["content"])
         ar = process_file_list(PRETRAIN_FILES, ["content"])
         random.shuffle(ar)
         for r in ar: w.writerow(r)
         
-    with open("workspace/outputs/finetune.csv", 'w', encoding='utf-8', newline='') as f:
+    with open(f"{BASE_DIR}/outputs/finetune.csv", 'w', encoding='utf-8', newline='') as f:
         w = csv.writer(f, **CSV_DIALECT_FINETUNE)
         w.writerow(["instruct", "query", "result"])
         for stage in FINETUNE_FILES:
@@ -533,11 +533,14 @@ def merge_csvs():
     print("Finished merge_csvs.")
 
 # --- EXECUTION ---
-process_published()
-process_dictionaries()
-process_publications()
-process_train()
-merge_dictionaries()
-process_reasoned_translations()
-merge_csvs()
-print("Akkadian pipeline execution complete.")
+def pipeline():
+    process_published()
+    process_dictionaries()
+    process_publications()
+    process_train()
+    merge_dictionaries()
+    process_reasoned_translations()
+    merge_csvs()
+    print("Akkadian pipeline execution complete.")
+
+pipeline()
